@@ -18,16 +18,16 @@ def get_reports():
 
 # Get backend data directory
 def get_backend_data():
-    return get_root_dir() / 'src' / 'web_backend' / 'data'
+    return get_root_dir() / 'web_backend' / 'data'
 
 # Get backend chromadb directory
 def get_backend_chromadb():
-    return get_root_dir() / 'src' / 'web_backend' / 'chromadb'
+    return get_root_dir() / 'web_backend' / 'chromadb'
 
 # Get backend qdrant directory
 def get_backend_qdrant():
-    return get_root_dir() / 'src' / 'web_backend' / 'qdrant'
+    return get_root_dir() / 'web_backend' / 'qdrant'
 
 # Get config directory
 def get_config():
-    return get_root_dir() / 'src' / 'config'
+    return get_root_dir() / 'config'

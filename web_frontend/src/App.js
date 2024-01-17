@@ -1,0 +1,328 @@
+import './App.css';
+import addBtn from './assets/image/add.png';
+import msgIcon from './assets/image/message.svg';
+import share from './assets/image/share.svg';
+import sendBtn from './assets/image/send.svg';
+import userIcon from './assets/image/user.png';
+import sidebar from './assets/image/sidebar.png';
+import logo from './assets/image/logo.png';
+import {useEffect, useRef, useState} from "react";
+import axios from 'axios';
+import Plot from 'react-plotly.js';
+
+function App() {
+    // User Input
+    const paperLink = 'https://www.jonathanfan.site/';
+    const [inputString, setInputString] = useState('');
+    const [messages, setMessages] = useState([
+            {
+                text: <div>
+                    <p>
+                        Hi, I am GenUI. To generate an index, please send a message that clearly specifies in any format of what label to use, the start and end date of your desired index, and also a transformation that is either relu, squared relu, arcsin, or sigmoid. Please note, the longer your desired time frame, the longer it will take to generate.
+                    </p>
+                    <p>
+                        Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info and Happy generating!
+                    </p>
+                </div>,
+                isBot: true,
+            }
+        ]);
+
+    // Auto Scroll
+    const msgEnd = useRef(null);
+    useEffect(() => {
+        msgEnd.current.scrollIntoView({ behavior: 'auto' });
+    }, [messages]);
+
+    // Simulate Typing with Callback
+    const simulateTyping = (response, isQuery, callback) => {
+        let initialDelay = isQuery ? 1000 : 2000;
+        let delay = isQuery ? 100 : 200;
+
+        const words = response.split(" ");
+        let currentText = "";
+        let cumulativeDelay = initialDelay;
+
+        words.forEach((word, index) => {
+            cumulativeDelay += delay + Math.random() * delay;
+
+            setTimeout(() => {
+                currentText += word + " ";
+                setMessages(prevMessages => {
+                    // Update only the last message (which should be the bot typing animation)
+                    let newMessages = [...prevMessages];
+                    newMessages[newMessages.length - 1] = { text: currentText.trim(), isBot: true };
+                    return newMessages;
+                });
+
+                // Execute callback after the last word
+                if (index === words.length - 1 && callback) {
+                    setTimeout(callback, delay);
+                }
+            }, cumulativeDelay);
+        });
+    };
+
+    // Send Input to Backend and Handle Bot is Typing
+    const [csvDataUrl, setCsvDataUrl] = useState(null);
+    const [botIsTyping, setBotIsTyping] = useState(false);
+    const handleSend = async () => {
+        if (botIsTyping) {
+            // Bot is still typing, do not allow user input
+            return;
+        }
+
+        const userInput = inputString;
+        setInputString('');
+
+        // Add user's message and an initial bot message
+        setMessages(prevMessages => [
+            ...prevMessages,
+            { text: userInput, isBot: false },
+            { text: "Bot is typing...", isBot: true }
+        ]);
+
+        setBotIsTyping(true);
+
+        try {
+            // Call to Flask API Worked
+            const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
+
+            // Parse the plot JSON data
+            const plotData = JSON.parse(response.data.gen_plot);
+
+            // Get the generated index data
+            const indexCsvData = response.data.gen_index;
+
+            // Create a Blob from the CSV data and create an object URL for it
+            const blob = new Blob([indexCsvData], { type: 'text/csv' });
+            const dataUrl = window.URL.createObjectURL(blob);
+            setCsvDataUrl(dataUrl);
+
+            // Retrieve generated combination data
+            const combineCsvData = response.data.gen_combine;
+            const parsedCombineData = parseCsvData(combineCsvData);
+            setPlotDataDetails(parsedCombineData);
+
+             // Simulate typing and then update the message with the plot
+            simulateTyping("Here is your generated index, click on any date to view the article that is most related toward your desired label! ", false, () => {
+                setMessages(prevMessages => [
+                    ...prevMessages.slice(0, -1),
+                    {
+                        type: "plot",
+                        content: plotData,
+                        isBot: true,
+                        text: "Here is your generated index, click on any date to view the article that is most related toward your desired label! ",
+                    }
+                ]);
+            });
+            setTimeout(() => {
+                setBotIsTyping(false);
+            }, 1000);
+
+        } catch (error) {
+            console.error("Error caught: ", error);
+            if (error.response && error.response.data && error.response.data.error) {
+                // Handle error response (due to error in input format, date, or transform)
+                simulateTyping(error.response.data.error, false)
+                setTimeout(() => {
+                    setBotIsTyping(false);
+                }, 1000);
+            } else if (axios.isAxiosError(error)) {
+                // The error is related to Axios or the API call
+                simulateTyping("An error occurred while processing your request, please try again.", false);
+                setTimeout(() => {
+                    setBotIsTyping(false);
+                }, 1000);
+            } else {
+                // The error is something else (maybe a bug in the code)
+                simulateTyping("An unexpected error occurred, please try again.", false);
+                setTimeout(() => {
+                    setBotIsTyping(false);
+                }, 1000);
+            }
+        }
+    };
+
+    // Handle Query
+    const handleQuery = async (e) => {
+        const text = e.target.value
+        let res = "";
+        if (text === "About Us") {
+            res = "This service was developed by Jonathan Fan, Yinan Su, and Leland Bybee who are active researchers at Yale University and John Hopkins University. We developed this website in hopes " +
+                  "of allowing finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index is a widely-research index that accurately measures uncertainty in the market" +
+                  " with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate uncertainty indexes that are specifically catered " +
+                  "toward a user's interest. For example, our method can generate an uncertainty index that specifically measures artificial intelligence uncertainty over the past decade. We have also statistically proven, that our own " +
+                  " generated 'EPU' index is highly correlated to the actual EPU index, further validating our method. Check out our paper to read more about our methodology! With this tool, " +
+                  "you can generate any uncertainty index catered for you, allowing for multitudes of new ideas with regards to asset pricing research. " +
+                  "If you have any questions regarding data, methodology, and purpose feel free to contact us at either jonathan.fan@yale.edu, ys@jhu.edu, or leland.bybee@yale.edu. We would love to chat!"
+        } else if (text === "How does it work?") {
+            res = "To generate an index, our method requires four inputs: label, start date, end date, and transform. The label can be anything, ranging from 'I like playing basketball' to " +
+                  "'Uncertainty in the stock price market'. As for start and end date, we currently only provide data generation from 1970-01-01 to 2020-01-01. Just specify your time frame within this range and make sure the start date " +
+                  " comes before end date. Lastly, the transform is the transformation applied on a daily interval. What does this exactly mean? Well, for each date we have an average of around 200 articles. " +
+                  " Instead of just averaging the cosine similarity score of these articles, you can apply different transformations such as a relu transformation to weight articles differently when calculating the daily index. That's it!";
+        } else if (text === "Why use this?") {
+            res = "This api not only possesses accruate generation, but it also introduces a whole new world for generating...";
+        }
+
+        // Add user's message and an initial bot message
+        setMessages(prevMessages => [
+            ...prevMessages,
+            { text: text, isBot: false },
+            { text: "Bot is typing...", isBot: true }
+        ]);
+        simulateTyping(res, true);
+
+        setSidebarVisible(false);
+    }
+
+    // Handle Enter key press in input
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSend();
+        }
+    }
+
+    // Handle Plot Click Article Pop-Up
+    const [plotDataDetails, setPlotDataDetails] = useState(null);
+    const [showPopup, setShowPopup] = useState(false);
+    const [selectedData, setSelectedData] = useState(null);
+
+    // Helper function to parse CSV data into JSON
+    const parseCsvData = (csvData) => {
+        const lines = csvData.trim().split('\n');
+        const result = [];
+
+        // Skip the first line (header)
+        for (let i = 1; i < lines.length; i++) {
+            const currentline = lines[i].split(',');
+
+            // Assuming the order is date, transform_cosine_sim, headline, document
+            const date = currentline[0].trim();
+            const transformCosineSim = currentline[1].trim();
+            const headline = currentline[2].trim();
+            const document = currentline.slice(3).join(',').trim();
+
+            result.push({ date, transformCosineSim, headline, document });
+        }
+
+        return result;
+    };
+
+    // Handle Share
+    const handleShare = () => {
+    const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("URL copied to clipboard!");
+        }).catch(err => {
+            console.error('Failed to copy URL: ', err);
+        });
+    };
+
+    // Handle Expanding Input
+    const inputRef = useRef(null);
+    useEffect(() => {
+        const input = inputRef.current;
+        input.style.height = 'auto';
+        input.style.height = `${input.scrollHeight}px`;
+    });
+
+    // Toggle Sidebar for phones
+    const [sidebarVisible, setSidebarVisible] = useState(false);
+    const toggleSidebar = () => {
+            setSidebarVisible(!sidebarVisible);
+    };
+
+    // Web Design
+    return (
+        <div className="App">
+            <button className={`toggle-btn ${sidebarVisible ? 'active' : ''}`} onClick={toggleSidebar}><img src={sidebar} alt="Side Bar" /></button>
+            <div className={`sideBar ${sidebarVisible ? 'active' : ''}`}>
+                <div className="upperSide">
+                    <div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">GenUI</span></div>
+                    <button className="midBtn" onClick={()=>{window.location.reload()}}><img src={addBtn} alt="New Chat" className="addBtn" />New Chat</button>
+                    <div className="upperSideBottom">
+                        <button className="query" onClick={handleQuery} value={'About Us'}><img src={msgIcon} alt="Query" />About Us</button>
+                        <button className="query" onClick={handleQuery} value={'How does it work?'}><img src={msgIcon} alt="Query" />How does it work?</button>
+                        {/*<button className="query" onClick={handleQuery} value={'Why use this?'}><img src={msgIcon} alt="Query" />Why use this?</button>*/}
+                    </div>
+                </div>
+                <div className="lowerSide">
+                    <div className="listItems">
+                        <img onClick={handleShare} src={share} alt="Share" className="listItemsImg" />Share
+                    </div>
+                </div>
+            </div>
+            <div className={`main ${sidebarVisible ? 'active' : ''}`}>
+                <div className="chats">
+                    {messages.map((message, i)=>
+                        <div key={i} className={message.isBot?"chat bot":"chat"}>
+                            <img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />
+                            <div className="message-text">
+                                <div className="message-label">{message.isBot ? "GenUI" : "You"}</div>
+                                {message.text === "Bot is typing..."
+                                    ? <div className="loading-circle"></div>
+                                    : <p className="message-inp">{message.text}</p>
+                                }
+                                {message.type === "plot" && (
+                                    <div className="plot-container">
+                                        <Plot
+                                            data={message.content.data}
+                                            layout={{
+                                                ...message.content.layout,
+                                                autosize: true,
+                                                responsive: true
+                                            }}
+                                            useResizeHandler={true}
+                                            onClick={(event) => {
+                                                const date = event.points[0].x;
+                                                const details = plotDataDetails.find(detail => detail.date === date);
+                                                setSelectedData(details);
+                                                setShowPopup(true);
+                                            }}
+                                        />
+                                        {csvDataUrl && (
+                                            <a href={csvDataUrl} download="gen_index.csv" className="download-csv-link" style={{ color: 'rgb(120, 180, 240)', textDecoration: 'none', display: 'inline-block', marginTop: '1rem' }}>
+                                                Download CSV
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="chatFooter">
+                        <div className="inp">
+                            <textarea
+                                className="growing-textarea"
+                                placeholder="Send a message..."
+                                value={inputString}
+                                ref={inputRef}
+                                onChange={(e) => { setInputString(e.target.value); }}
+                                onKeyPress={handleKeyPress}
+                                disabled={botIsTyping}
+                            />
+                            <button className='send' onClick={handleSend}>
+                                <img src={sendBtn} alt="send"/>
+                            </button>
+                        </div>
+                        <p>GenUI is more prone to mistakes if a label, start date, end date, and transform is not clearly specified.</p>
+                    </div>
+                    <div ref={msgEnd}></div>
+                    {showPopup && selectedData && (
+                        <div className="popup">
+                            <div className="popup-inner">
+                                <h3 style={{ color: 'rgba(60, 120, 180)'}}>{selectedData.date}</h3>
+                                <h2 style={{ marginTop: '1rem', marginBottom: '1rem'}}>{selectedData.headline}</h2>
+                                <p style={{ fontSize: '1.2rem', lineHeight: '2.2rem'}}>{selectedData.document}</p>
+                                <button onClick={() => setShowPopup(false)}>Close</button>
+                            </div>
+                        </div>
+                    )}
+            </div>
+        </div>
+    );
+}
+
+export default App;
