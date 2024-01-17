@@ -1,0 +1,4 @@
+react-bootstrap bootstrap
+axios
+plotly
+react-plotly.js

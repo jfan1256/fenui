@@ -95,4 +95,8 @@ def generate_plot():
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # # Local
+    # app.run(debug=True)
+
+    # Prod (GCP)
+    app.run(host="127.0.0.1", port=8080, debug=True)
