@@ -1,0 +1,18 @@
+# Python
+pandas
+numpy
+jupyterlab
+tensorflow
+scikit-learn
+chromadb
+qdrant-client
+pymilvus==2.3.4
+flask-cors
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+
+# React
+react-bootstrap bootstrap
+axios
