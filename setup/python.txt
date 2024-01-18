@@ -1,7 +1,6 @@
 pandas
 numpy
 jupyterlab
-tensorflow
 scikit-learn
 chromadb
 qdrant-client
