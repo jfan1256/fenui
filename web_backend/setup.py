@@ -4,7 +4,7 @@ setup(
     name='src',
     packages=find_packages(),
     version='0.1.0',
-    description='GenUI',
+    description='FenUI',
     author='Jonathan Fan, Yinan Su, Leland Bybee',
     license='',
 )

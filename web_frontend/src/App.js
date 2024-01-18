@@ -18,7 +18,7 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am GenUI. To generate an index, please send a message that clearly specifies in any format of what label to use, the start and end date of your desired index, and also a transformation that is either relu, squared relu, arcsin, or sigmoid. Please note, the longer your desired time frame, the longer it will take to generate.
+                        Hi, I am FenUI. To generate an index, please send a message that clearly specifies in any format of what label to use, the start and end date of your desired index, and also a transformation that is either relu, squared relu, arcsin, or sigmoid. Please note, the longer your desired time frame, the longer it will take to generate.
                     </p>
                     <p>
                         Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info and Happy generating!
@@ -239,7 +239,7 @@ function App() {
             <button className={`toggle-btn ${sidebarVisible ? 'active' : ''}`} onClick={toggleSidebar}><img src={sidebar} alt="Side Bar" /></button>
             <div className={`sideBar ${sidebarVisible ? 'active' : ''}`}>
                 <div className="upperSide">
-                    <div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">GenUI</span></div>
+                    <div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">FenUI</span></div>
                     <button className="midBtn" onClick={()=>{window.location.reload()}}><img src={addBtn} alt="New Chat" className="addBtn" />New Chat</button>
                     <div className="upperSideBottom">
                         <button className="query" onClick={handleQuery} value={'About Us'}><img src={msgIcon} alt="Query" />About Us</button>
@@ -259,7 +259,7 @@ function App() {
                         <div key={i} className={message.isBot?"chat bot":"chat"}>
                             <img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />
                             <div className="message-text">
-                                <div className="message-label">{message.isBot ? "GenUI" : "You"}</div>
+                                <div className="message-label">{message.isBot ? "FenUI" : "You"}</div>
                                 {message.text === "Bot is typing..."
                                     ? <div className="loading-circle"></div>
                                     : <p className="message-inp">{message.text}</p>
@@ -307,7 +307,7 @@ function App() {
                                 <img src={sendBtn} alt="send"/>
                             </button>
                         </div>
-                        <p>GenUI is more prone to mistakes if a label, start date, end date, and transform is not clearly specified.</p>
+                        <p>FenUI is more prone to mistakes if a label, start date, end date, and transform is not clearly specified.</p>
                     </div>
                     <div ref={msgEnd}></div>
                     {showPopup && selectedData && (
