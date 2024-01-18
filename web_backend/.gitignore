@@ -22,3 +22,9 @@ yarn-error.log*
 
 # jupyter notebook
 .ipynb_checkpoints
+
+# setup
+/src.egg-info
+
+# Config
+api.json
