@@ -1,18 +1,30 @@
 import re
-import os
+import config
+import json
+import time
+import uuid
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from datetime import datetime
 from flask_cors import CORS
 
-from web_backend.class_fetch.query_fetch import QueryFetch
-from web_backend.class_generate.generate_index import GenerateIndex
-from web_backend.class_plot.plot_plotly import PlotPlotly
-from web_backend.class_parser.gpt_extract import GPTExtract
+from class_fetch.query_fetch import QueryFetch
+from class_generate.generate_index import GenerateIndex
+from class_plot.plot_plotly import PlotPlotly
+from class_parser.gpt_extract import GPTExtract
 
 app = Flask(__name__)
 CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
 
+# Log Version
+@app.route("/version", methods=["GET"], strict_slashes=False)
+def version():
+    response_body = {
+        "success": 1,
+    }
+    return jsonify(response_body)
+
+# Generate Plot
 @app.route('/generate_plot', methods=['POST'])
 def generate_plot():
     '''
@@ -21,7 +33,7 @@ def generate_plot():
         2. To test the server: Invoke-WebRequest -Uri http://localhost:5000/generate_plot -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"input_str": "Label: artificial intelligence, Start Date: 2010-01-01, End Date: 2010-01-01, Transform: relu"}'
     '''
 
-    # # Extract and parse input string
+     # Extract and parse input string
     data = request.json
     input_str = data.get('input_str', '')
 
@@ -95,9 +107,28 @@ def generate_plot():
         'gen_combine': gen_combine.to_csv()
     })
 
+# Log Version
+@app.after_request
+def after_request(response):
+    if response and response.get_json():
+        data = response.get_json()
+        data["time_request"] = int(time.time())
+        data["version"] = config.VERSION
+        response.set_data(json.dumps(data))
+    return response
+
+
+# Execution ID
+@app.before_request
+def before_request_func():
+    execution_id = uuid.uuid4()
+    g.start_time = time.time()
+    g.execution_id = execution_id
+    print(g.execution_id, "ROUTE CALLED ", request.url)
+
 if __name__ == "__main__":
     # # Local
     # app.run(debug=True)
 
     # Prod (GCP)
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(host="0.0.0.0", port=5000)
