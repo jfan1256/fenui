@@ -35,7 +35,7 @@ function App() {
     }, [messages]);
 
     // Simulate Typing with Callback
-    const simulateTyping = (response, isQuery, callback) => {
+    const simulateTyping = (response, isQuery, callback, onComplete) => {
         let initialDelay = isQuery ? 1000 : 2000;
         let delay = isQuery ? 100 : 200;
 
@@ -56,8 +56,14 @@ function App() {
                 });
 
                 // Execute callback after the last word
-                if (index === words.length - 1 && callback) {
-                    setTimeout(callback, delay);
+                if (index === words.length - 1) {
+                    if (callback) {
+                        setTimeout(callback, delay);
+                    }
+                    // Add this check here
+                    if (onComplete) {
+                        setTimeout(onComplete, cumulativeDelay + delay);
+                    }
                 }
             }, cumulativeDelay);
         });
@@ -105,7 +111,9 @@ function App() {
             setPlotDataDetails(parsedCombineData);
 
              // Simulate typing and then update the message with the plot
-            simulateTyping("Here is your generated index, click on any date to view the article that is most related toward your desired label! ", false, () => {
+            simulateTyping("Here is your generated index, click on any date to view the article that is most related toward your desired label! ",
+                false,
+                () => {
                 setMessages(prevMessages => [
                     ...prevMessages.slice(0, -1),
                     {
@@ -115,31 +123,18 @@ function App() {
                         text: "Here is your generated index, click on any date to view the article that is most related toward your desired label! ",
                     }
                 ]);
-            });
-            setTimeout(() => {
-                setBotIsTyping(false);
-            }, 1000);
-
+            }, () => setBotIsTyping(false));
         } catch (error) {
             console.error("Error caught: ", error);
             if (error.response && error.response.data && error.response.data.error) {
                 // Handle error response (due to error in input format, date, or transform)
-                simulateTyping(error.response.data.error, false)
-                setTimeout(() => {
-                    setBotIsTyping(false);
-                }, 1000);
+                simulateTyping(error.response.data.error, false, null, () => setBotIsTyping(false));
             } else if (axios.isAxiosError(error)) {
                 // The error is related to Axios or the API call
-                simulateTyping("An error occurred while processing your request, please try again.", false);
-                setTimeout(() => {
-                    setBotIsTyping(false);
-                }, 1000);
+                simulateTyping("An error occurred while processing your request, please try again.", false, null, () => setBotIsTyping(false));
             } else {
                 // The error is something else (maybe a bug in the code)
-                simulateTyping("An unexpected error occurred, please try again.", false);
-                setTimeout(() => {
-                    setBotIsTyping(false);
-                }, 1000);
+                simulateTyping("An unexpected error occurred, please try again.", false, null, () => setBotIsTyping(false));
             }
         }
     };
@@ -177,12 +172,9 @@ function App() {
             { text: text, isBot: false },
             { text: "Bot is typing...", isBot: true }
         ]);
-        simulateTyping(res, true);
+        simulateTyping(res, true, null, () => setBotIsTyping(false));
 
         setSidebarVisible(false);
-        setTimeout(() => {
-            setBotIsTyping(false);
-        }, 1000);
     }
 
     // Handle Enter key press in input
