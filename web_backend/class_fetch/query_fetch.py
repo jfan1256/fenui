@@ -44,7 +44,16 @@ class QueryFetch:
         else:
             MILVUS_HOST = self.ngrok_host
             MILVUS_PORT = self.ngrok_port
-            connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
+            max_retries = 3
+            attempts = 0
+
+            while attempts < max_retries:
+                try:
+                    connections.connect('default', host=MILVUS_HOST, port=MILVUS_PORT)
+                    break
+                except Exception as e:
+                    attempts += 1
+                    time.sleep(1)
 
         # Load collection
         collection = Collection("wsj_emb")
