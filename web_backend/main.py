@@ -30,8 +30,6 @@ else:
     # Local CORS
     CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
 
-
-
 # Log Version
 @app.route("/version", methods=["GET"], strict_slashes=False)
 def version():
