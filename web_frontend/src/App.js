@@ -148,6 +148,8 @@ function App() {
     const handleQuery = async (e) => {
         const text = e.target.value
         let res = "";
+        setBotIsTyping(true);
+
         if (text === "About Us") {
             res = "This service was developed by Jonathan Fan, Yinan Su, and Leland Bybee who are active researchers at Yale University and John Hopkins University. We developed this website in hopes " +
                   "of allowing finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index is a widely-research index that accurately measures uncertainty in the market" +
@@ -178,6 +180,9 @@ function App() {
         simulateTyping(res, true);
 
         setSidebarVisible(false);
+        setTimeout(() => {
+            setBotIsTyping(false);
+        }, 1000);
     }
 
     // Handle Enter key press in input
