@@ -31,7 +31,7 @@ function App() {
     // Auto Scroll
     const msgEnd = useRef(null);
     useEffect(() => {
-        msgEnd.current.scrollIntoView({ behavior: 'auto' });
+        msgEnd.current.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     // Simulate Typing with Callback
