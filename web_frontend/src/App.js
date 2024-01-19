@@ -246,9 +246,9 @@ function App() {
                     <div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">FenUI</span></div>
                     <button className="midBtn" onClick={()=>{window.location.reload()}}><img src={addBtn} alt="New Chat" className="addBtn" />New Chat</button>
                     <div className="upperSideBottom">
-                        <button className="query" onClick={handleQuery} value={'About Us'}><img src={msgIcon} alt="Query" />About Us</button>
-                        <button className="query" onClick={handleQuery} value={'How to use?'}><img src={msgIcon} alt="Query" />How to use?</button>
-                        <button className="query" onClick={handleQuery} value={'How does it work?'}><img src={msgIcon} alt="Query" />How does it work?</button>
+                        <button className="query" onClick={botIsTyping ? null : handleQuery} value={'About Us'} disabled={botIsTyping}><img src={msgIcon} alt="Query" />About Us</button>
+                        <button className="query" onClick={botIsTyping ? null : handleQuery} value={'How to use?'} disabled={botIsTyping}><img src={msgIcon} alt="Query" />How to use?</button>
+                        <button className="query" onClick={botIsTyping ? null : handleQuery} value={'How does it work?'} disabled={botIsTyping}><img src={msgIcon} alt="Query" />How does it work?</button>
                     </div>
                 </div>
                 <div className="lowerSide">
