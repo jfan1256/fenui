@@ -165,7 +165,7 @@ function App() {
         } else if (text === "How does it work?") {
             res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1970 to 2020. Each day has around 200 articles. From here, we then " +
                   "used OpenAI's ADA Model to generated an embeddings dataset. Now to actually generated the index, we retrieve the embeddings of a your input label and then calculate the cosine " +
-                  " similarity score of each article's embedding compared with the label embedding. From here, we then apply a transformation on each to eliminate irrelevant articles and calculate the " +
+                  " similarity score of each article's embedding compared with the label embedding. From here, we then apply a transformation on each score to eliminate irrelevant articles and calculate the " +
                   " average score per date. This leads us to a final daily timeseries of scores, which accurately represents the uncertainty index with regards to your inputted label. For more information on" +
                   " our methodology and it's validity, check out our paper!"
         }

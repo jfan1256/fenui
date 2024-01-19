@@ -15,11 +15,22 @@ from class_parser.gpt_extract import GPTExtract
 
 app = Flask(__name__)
 
-# # Local
-# CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
+prod = True
 
-# Prod (GCP)
-CORS(app, resources={r"/generate_plot": {"origins": "https://fenui.vercel.app"}})
+if prod == True:
+    # Prod CORS (This is connecting to the frontend url)
+    CORS(app, resources={r"/generate_plot": {"origins": "https://fenui.vercel.app"}})
+
+    # Ngrok Tunnel (This is a secure tunnel to broadcast localhost to the internet - for milvus that would be broadcasting localhost:19530)
+    # Must update this everytime by running ngrok tcp 19530 in ngrok command prompt
+    # Must ensure that milvus docker-compose is running on-prem
+    ngrok_host = '0.tcp.ngrok.io'
+    ngrok_port = '11061'
+else:
+    # Local CORS
+    CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
+
+
 
 # Log Version
 @app.route("/version", methods=["GET"], strict_slashes=False)
@@ -95,7 +106,7 @@ def generate_plot():
         return jsonify({'error': 'Invalid date value, start_date should be before end_date.'}), 400
 
     # Fetch Data from Milvus Database
-    query_fetch = QueryFetch(label=label, start_date=start_date_str, end_date=end_date_str)
+    query_fetch = QueryFetch(label=label, start_date=start_date_str, end_date=end_date_str, prod=True, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
     query = query_fetch.query_fetch()
 
     # Generate Index and Article index

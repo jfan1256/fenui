@@ -11,7 +11,10 @@ class QueryFetch:
     def __init__(self,
                  label=None,
                  start_date=None,
-                 end_date=None):
+                 end_date=None,
+                 prod=None,
+                 ngrok_host=None,
+                 ngrok_port=None):
 
         '''
         label (str): Label to fetch for
@@ -22,6 +25,9 @@ class QueryFetch:
         self.label = label
         self.start_date = start_date
         self.end_date = end_date
+        self.prod = prod
+        self.ngrok_host = ngrok_host
+        self.ngrok_port = ngrok_port
 
         # Get API Key
         api = json.load(open(get_config() / 'api.json'))
@@ -30,10 +36,15 @@ class QueryFetch:
         # Define OpenAI model
         self.model = 'text-embedding-ada-002'
 
-        # Establish Milvus connection
-        MILVUS_HOST = 'localhost'
-        MILVUS_PORT = '19530'
-        connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
+        # Establish Milvus connection (Local or Prod)
+        if self.prod:
+            MILVUS_HOST = 'localhost'
+            MILVUS_PORT = '19530'
+            connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
+        else:
+            MILVUS_HOST = self.ngrok_host
+            MILVUS_PORT = self.ngrok_port
+            connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
 
         # Load collection
         collection = Collection("wsj_emb")
