@@ -31,7 +31,7 @@ function App() {
     // Auto Scroll
     const msgEnd = useRef(null);
     useEffect(() => {
-        msgEnd.current.scrollIntoView({ behavior: 'smooth' });
+        msgEnd.current.scrollIntoView({ behavior: 'auto' });
     }, [messages]);
 
     // Simulate Typing with Callback
@@ -62,7 +62,7 @@ function App() {
                     }
                     // Add this check here
                     if (onComplete) {
-                        setTimeout(onComplete, cumulativeDelay + delay);
+                        setTimeout(onComplete, 0);
                     }
                 }
             }, cumulativeDelay);
@@ -296,6 +296,7 @@ function App() {
                             </div>
                         </div>
                     )}
+                    <div ref={msgEnd}></div>
                 </div>
                 <div className="chatFooter">
                         <div className="inp">
@@ -314,7 +315,6 @@ function App() {
                         </div>
                         <p>FenUI is more prone to mistakes if a label, start date, end date, and transform is not clearly specified.</p>
                     </div>
-                    <div ref={msgEnd}></div>
                     {showPopup && selectedData && (
                         <div className="popup">
                             <div className="popup-inner">

@@ -44,7 +44,7 @@ class QueryFetch:
         else:
             MILVUS_HOST = self.ngrok_host
             MILVUS_PORT = self.ngrok_port
-            max_retries = 3
+            max_retries = 5
             attempts = 0
 
             while attempts < max_retries:
@@ -53,7 +53,6 @@ class QueryFetch:
                     break
                 except Exception as e:
                     attempts += 1
-                    time.sleep(1)
 
         # Load collection
         collection = Collection("wsj_emb")

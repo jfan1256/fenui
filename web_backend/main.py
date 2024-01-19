@@ -141,8 +141,11 @@ def before_request_func():
     print(g.execution_id, "ROUTE CALLED ", request.url)
 
 if __name__ == "__main__":
-    # # Local
-    # app.run(debug=True)
+    if prod == True:
+        # Prod (GCP)
+        app.run(host="0.0.0.0", port=5000)
+    else:
+        # Local
+        app.run(debug=True)
 
-    # Prod (GCP)
-    app.run(host="0.0.0.0", port=5000)
+
