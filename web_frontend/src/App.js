@@ -156,13 +156,17 @@ function App() {
                   " generated 'EPU' index is highly correlated to the actual EPU index, further validating our method. Check out our paper to read more about our methodology! With this tool, " +
                   "you can generate any uncertainty index catered for you, allowing for multitudes of new ideas with regards to asset pricing research. " +
                   "If you have any questions regarding data, methodology, and purpose feel free to contact us at either jonathan.fan@yale.edu, ys@jhu.edu, or leland.bybee@yale.edu. We would love to chat!"
-        } else if (text === "How does it work?") {
+        } else if (text === "How to use?") {
             res = "To generate an index, our method requires four inputs: label, start date, end date, and transform. The label can be anything, ranging from 'I like playing basketball' to " +
                   "'Uncertainty in the stock price market'. As for start and end date, we currently only provide data generation from 1970-01-01 to 2020-01-01. Just specify your time frame within this range and make sure the start date " +
                   " comes before end date. Lastly, the transform is the transformation applied on a daily interval. What does this exactly mean? Well, for each date we have an average of around 200 articles. " +
                   " Instead of just averaging the cosine similarity score of these articles, you can apply different transformations such as a relu transformation to weight articles differently when calculating the daily index. That's it!";
-        } else if (text === "Why use this?") {
-            res = "This api not only possesses accruate generation, but it also introduces a whole new world for generating...";
+        } else if (text === "How does it work?") {
+            res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1970 to 2020. Each day has around 200 articles. From here, we then " +
+                  "used OpenAI's ADA Model to generated an embeddings dataset. Now to actually generated the index, we retrieve the embeddings of a your input label and then calculate the cosine " +
+                  " similarity score of each article's embedding compared with the label embedding. From here, we then apply a transformation on each to eliminate irrelevant articles and calculate the " +
+                  " average score per date. This leads us to a final daily timeseries of scores, which accurately represents the uncertainty index with regards to your inputted label. For more information on" +
+                  " our methodology and it's validity, check out our paper!"
         }
 
         // Add user's message and an initial bot message
@@ -243,8 +247,8 @@ function App() {
                     <button className="midBtn" onClick={()=>{window.location.reload()}}><img src={addBtn} alt="New Chat" className="addBtn" />New Chat</button>
                     <div className="upperSideBottom">
                         <button className="query" onClick={handleQuery} value={'About Us'}><img src={msgIcon} alt="Query" />About Us</button>
+                        <button className="query" onClick={handleQuery} value={'How to use?'}><img src={msgIcon} alt="Query" />How to use?</button>
                         <button className="query" onClick={handleQuery} value={'How does it work?'}><img src={msgIcon} alt="Query" />How does it work?</button>
-                        {/*<button className="query" onClick={handleQuery} value={'Why use this?'}><img src={msgIcon} alt="Query" />Why use this?</button>*/}
                     </div>
                 </div>
                 <div className="lowerSide">
