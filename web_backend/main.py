@@ -24,8 +24,8 @@ if prod == True:
     # Ngrok Tunnel (This is a secure tunnel to broadcast localhost to the internet - for milvus that would be broadcasting localhost:19530)
     # Must update this everytime by running ngrok tcp 19530 in ngrok command prompt
     # Must ensure that milvus docker-compose is running on-prem
-    ngrok_host = '0.tcp.ngrok.io'
-    ngrok_port = '11061'
+    ngrok_host = '8.tcp.ngrok.io'
+    ngrok_port = '12658'
 else:
     # Local CORS
     CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
@@ -104,7 +104,10 @@ def generate_plot():
         return jsonify({'error': 'Invalid date value, start_date should be before end_date.'}), 400
 
     # Fetch Data from Milvus Database
-    query_fetch = QueryFetch(label=label, start_date=start_date_str, end_date=end_date_str, prod=True, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
+    try:
+        query_fetch = QueryFetch(label=label, start_date=start_date_str, end_date=end_date_str, prod=True, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
+    except:
+        return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
     query = query_fetch.query_fetch()
 
     # Generate Index and Article index

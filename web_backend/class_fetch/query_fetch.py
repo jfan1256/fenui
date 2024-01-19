@@ -49,6 +49,7 @@ class QueryFetch:
 
             while attempts < max_retries:
                 try:
+                    connections.disconnect('default')
                     connections.connect('default', host=MILVUS_HOST, port=MILVUS_PORT)
                     break
                 except Exception as e:
