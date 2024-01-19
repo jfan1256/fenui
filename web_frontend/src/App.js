@@ -36,7 +36,7 @@ function App() {
 
     // Simulate Typing with Callback
     const simulateTyping = (response, isQuery, callback, onComplete) => {
-        let initialDelay = isQuery ? 1000 : 2000;
+        let initialDelay = isQuery ? 300 : 600;
         let delay = isQuery ? 100 : 200;
 
         const words = response.split(" ");
