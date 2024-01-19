@@ -79,7 +79,6 @@ body {
     display: flex !important;
     flex-direction: column !important;
     width: 30rem !important;
-    height: 85% !important;
     padding: 0 !important;
     position: relative;
     left: 50%;
@@ -93,7 +92,6 @@ body {
 
   .chat {
     max-width: 100vw !important;
-    max-height: 100% !important;
   }
 
   .chatFooter {
