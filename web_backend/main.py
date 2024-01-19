@@ -14,7 +14,12 @@ from class_plot.plot_plotly import PlotPlotly
 from class_parser.gpt_extract import GPTExtract
 
 app = Flask(__name__)
-CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
+
+# # Local
+# CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
+
+# Prod (GCP)
+CORS(app, resources={r"/generate_plot": {"origins": "https://fenui.vercel.app"}})
 
 # Log Version
 @app.route("/version", methods=["GET"], strict_slashes=False)

@@ -92,7 +92,11 @@ function App() {
 
         try {
             // Call to Flask API Worked
-            const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
+            // // Local
+            // const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
+
+            // Prod (GCP)
+            const response = await axios.post('https://webbackend-yhzjtissga-ue.a.run.app/generate_plot', { "input_str": userInput });
 
             // Parse the plot JSON data
             const plotData = JSON.parse(response.data.gen_plot);
