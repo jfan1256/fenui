@@ -95,8 +95,11 @@ function App() {
             // // Local
             // const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
 
-            // Prod (GCP)
-            const response = await axios.post('https://webbackend-yhzjtissga-ue.a.run.app/generate_plot', { "input_str": userInput });
+            // // Prod (GCP)
+            // const response = await axios.post('https://webbackend-yhzjtissga-ue.a.run.app/generate_plot', { "input_str": userInput });
+
+            // Prod (Ngrok)
+            const response = await axios.post('https://7e5d-128-255-131-2.ngrok-free.app/generate_plot', { "input_str": userInput });
 
             // Parse the plot JSON data
             const plotData = JSON.parse(response.data.gen_plot);
