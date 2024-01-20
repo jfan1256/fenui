@@ -1,0 +1,20 @@
+# Ngrok
+/ngrok
+
+# Milvus
+/database
+
+# Data
+/data
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Config
+api.json
+
+# Pycharm
+/web_backend/src.egg-info
+
+# React
+/web_frontend/node_modules

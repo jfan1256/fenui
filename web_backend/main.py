@@ -8,6 +8,8 @@ from flask import Flask, request, jsonify, g
 from datetime import datetime
 from flask_cors import CORS
 
+from utils.system import get_config
+
 from class_fetch.query_fetch import QueryFetch
 from class_generate.generate_index import GenerateIndex
 from class_plot.plot_plotly import PlotPlotly
@@ -24,8 +26,9 @@ if prod == True:
     # Ngrok Tunnel (This is a secure tunnel to broadcast localhost to the internet - for milvus that would be broadcasting localhost:19530)
     # Must update this everytime by running ngrok tcp 19530 in ngrok command prompt
     # Must ensure that milvus docker-compose is running on-prem
-    ngrok_host = '4.tcp.ngrok.io'
-    ngrok_port = '13333'
+    ngrok_config = json.load(open('../ngrok/ngrok.json'))
+    ngrok_host = ngrok_config['tcp_host']
+    ngrok_port = ngrok_config['tcp_port']
 
 else:
     # Local CORS
