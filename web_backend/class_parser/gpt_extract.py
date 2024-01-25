@@ -21,25 +21,21 @@ class GPTExtract:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "user", "content": "Can you extract the label, start date, end date, and transform from this piece of text."
-                                            "The transform should exist in this list: ['relu', 'squared relu', 'arcsin', 'sigmoid']. I would like you to be able to extract"
-                                            "any name variation of these transformations. So if for example "
-                                            "the user specifies a Rectified Linear Unit transformation, log it as 'relu'. If a transformation is not in the list when"
-                                            "abbreviated or cut down, then input transform as none. "
-                                            "In addition, please format the data like a json all lowercase string file like this:"
-                                            "\n\n label: (label), start date: (YYYY-MM-DD), end date: (YYYY-MM-DD), transform: (transform) "
-                                            "\n\n if you cannot find a label, start date, end date, or a transform, set the value to be 'None' within the json output"
-                                            f"\n\n Here is the text: {self.input}"
+                {"role": "user", "content": f"\n\n Here is the text: {input}" +
+                                            "Can you extract the label, start date, end date, and transform from this piece of text. " +
+                                            "The transform should exist in this list: ['relu', 'squared relu', 'arcsin', 'sigmoid']. " +
+                                            "You must extract any variation of these four transformations. " +
+                                            "For example, if the text is 'Rectified Linear Unit transformation', then store it as 'relu'. " +
+                                            "If a transformation is not in the list when abbreviated or cut down, then store the transform as transform as 'none'. " +
+                                            "Likewise, if you cannot extract a label, start date, or end date, then store the them as 'none'. " +
+                                            "Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
+                                            "{\"label\": \"(label)\", " +
+                                            "\"start_date\": \"(YYYY-MM-DD)\", " +
+                                            "\"end_date\": \"(YYYY-MM-DD)\", " +
+                                            "\"transform\": \"(transform)\"}"
                  }
             ]
         )
         summary = response.choices[0].message.content.strip()
         data = json.loads(summary)
-        extracted_info = {
-            'label': data.get('label'),
-            'start_date': data.get('start date'),
-            'end_date': data.get('end date'),
-            'transform': data.get('transform')
-        }
-
-        return extracted_info
+        return data
