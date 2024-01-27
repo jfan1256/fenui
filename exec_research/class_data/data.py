@@ -24,12 +24,19 @@ class Data:
         self.name = name
 
     # Concat all embedding files
-    def concat_files(self):
+    def concat_files(self, num=None):
         full_pattern = f'{self.folder_path}/{self.file_pattern}'
         file_list = glob.glob(full_pattern)
         number_extraction_pattern = self.file_pattern.replace('*', r'(\d+)')
         file_list.sort(key=lambda x: int(re.search(number_extraction_pattern, x).group(1)))
-        df_list = [pd.read_parquet(file) for file in file_list]
+        if num != None:
+            df_list = []
+            for i, file in enumerate(file_list):
+                if i == num:
+                    break
+                df_list.append(pd.read_parquet(file))
+        else:
+            df_list = [pd.read_parquet(file) for file in file_list]
         self.data = pd.concat(df_list, axis=0)
         return self.data
 
