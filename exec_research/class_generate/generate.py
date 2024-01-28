@@ -4,6 +4,7 @@ import pandas as pd
 
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
+from tqdm import tqdm
 
 from utils.system import *
 from class_data.data import Data
@@ -173,7 +174,7 @@ class Generate:
         # ------------------------------------------------------------------------COMPUTE SCORE-------------------------------------------------------------------
         print("-"*60 + "\nComputing score...")
         # Compute score across ngrams
-        batch_size = 100000
+        batch_size = 10000
         count = 0
 
         for key in self.query.keys():
@@ -189,7 +190,7 @@ class Generate:
                 num_batches = len(self.vector_data) // batch_size + 1
                 comp_batches = []
 
-                for batch_num in range(num_batches):
+                for batch_num in tqdm(range(num_batches), desc="Processing batches..."):
                     start_idx = batch_num * batch_size
                     end_idx = min((batch_num + 1) * batch_size, len(self.vector_data))
                     matrix_batch = np.stack(self.vector_data[self.vector_column][start_idx:end_idx].values)
@@ -214,21 +215,22 @@ class Generate:
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # ---------------------------------------------------------------------APPLY TRANSFORMATION---------------------------------------------------------------
-        # Apply RELU transformation
+        # Apply Sigmoid transformation
         score = self.vector_data[self.vector_data.columns[1:]]
-        relu_score = np.maximum(0, score - 0.75)
-        relu_score = relu_score.mean(axis=1).to_frame("score")
+        sigmoid_score = 1 / (1 + np.exp(-(0.75 * score + -1)))
+        sigmoid_score = np.maximum(0, score - 0.02)
+        sigmoid_score = sigmoid_score.mean(axis=1).to_frame("score")
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------AGGREGATE---------------------------------------------------------------------
         # Add article
-        relu_score.index.names = ['date']
-        art = pd.concat([relu_score, self.article_data[['headline', 'body_txt']]], axis=1)
+        sigmoid_score.index.names = ['date']
+        art = pd.concat([sigmoid_score, self.article_data[['headline', 'body_txt']]], axis=1)
         art = art.sort_values(by='score', ascending=False)
 
         # Aggregate to daily timeframe
-        relu_score = relu_score.groupby('date').mean()
-        relu_score.columns = ['score']
+        sigmoid_score = sigmoid_score.groupby('date').mean()
+        sigmoid_score.columns = ['score']
 
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
@@ -236,16 +238,16 @@ class Generate:
             monthly_art = art.resample('M').first()
 
             # Join score and article
-            relu_score = relu_score.resample('M').mean()
-            relu_score = pd.concat([relu_score, monthly_art[['headline', 'body_txt']]], axis=1)
+            sigmoid_score = sigmoid_score.resample('M').mean()
+            sigmoid_score = pd.concat([sigmoid_score, monthly_art[['headline', 'body_txt']]], axis=1)
 
         elif self.interval == "D":
             daily_art = art.groupby(art.index.date).first()
             daily_art.index = pd.to_datetime(daily_art.index)
             # Join score and article
-            relu_score = pd.concat([relu_score, daily_art[['headline', 'body_txt']]], axis=1)
+            sigmoid_score = pd.concat([sigmoid_score, daily_art[['headline', 'body_txt']]], axis=1)
 
-        return relu_score
+        return sigmoid_score
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------TEST--------------------------------------------------------------------------
