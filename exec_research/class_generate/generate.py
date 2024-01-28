@@ -173,7 +173,7 @@ class Generate:
         # ------------------------------------------------------------------------COMPUTE SCORE-------------------------------------------------------------------
         print("-"*60 + "\nComputing score...")
         # Compute score across ngrams
-        batch_size = 10000
+        batch_size = 100000
         count = 0
 
         for key in self.query.keys():
