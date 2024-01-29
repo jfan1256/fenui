@@ -15,6 +15,8 @@ class Generate:
                  type=None,
                  vector_data=None,
                  vector_column=None,
+                 preprocess_data=None,
+                 preprocess_column=None,
                  article_data=None,
                  tfidf=None,
                  method=None,
@@ -23,9 +25,11 @@ class Generate:
 
         '''
         query (str): User input (should contain a label, start date and end date)
-        type (str): Method to generate an index (either 'embedding' or 'tfidf')
+        type (str): Method to generate an index (either 'embedding', 'tfidf', 'count')
         vector_data (pd.DataFrame): Pandas dataframe that stores the article vectors
         vector_column (str): Column name for the vector column
+        preprocess_data (pd.DataFrame): Pandas dataframe that stores the preprocessed articles
+        preprocess_column (str): Column name for the preprocess column
         article_data (pd.DataFrame): Pandas dataframe that stores the article headline and body text
         tfidf (tfidf.vectorizer): Fitted TFIDF Vectorizer
         method (str): Method to compute score for TFIDF (either 'mult' or 'cos_sim')
@@ -36,6 +40,8 @@ class Generate:
         self.type = type
         self.vector_data = vector_data
         self.vector_column = vector_column
+        self.preprocess_data = preprocess_data
+        self.preprocess_column = preprocess_column
         self.article_data = article_data
         self.tfidf = tfidf
         self.method = method
@@ -66,6 +72,8 @@ class Generate:
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
             summary = summary[start_index:]
+            end_index = summary.rfind('}') + 1
+            summary = summary[:end_index]
             self.query = json.loads(summary)
 
         # TFIDF Extraction
@@ -93,21 +101,59 @@ class Generate:
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
             summary = summary[start_index:]
+            end_index = summary.rfind('}') + 1
+            summary = summary[:end_index]
+            self.query = json.loads(summary)
+
+        # Count Extraction
+        elif self.type == "count":
+            response = self.client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "user", "content": f"Here is the text: {self.query}" +
+                                                "\n\n :: " +
+                                                "Extract the label, start date, and end date from this piece of text and make it all lowercase. " +
+                                                "If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
+                                                "\n\n Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
+                                                "{\"label\": \"(label)\", " +
+                                                "\"start_date\": \"(YYYY-MM-DD)\", " +
+                                                "\"end_date\": \"(YYYY-MM-DD)\"} "
+                     }
+                ]
+            )
+            summary = response.choices[0].message.content.strip()
+            start_index = summary.find('{')
+            summary = summary[start_index:]
+            end_index = summary.rfind('}') + 1
+            summary = summary[:end_index]
             self.query = json.loads(summary)
 
         print(f"Here is the query: \n{self.query}")
 
         # Set timeframe
-        self.vector_data = self.vector_data[(self.vector_data.index >= self.query["start_date"]) & (self.vector_data.index <= self.query["end_date"])]
-        self.article_data = self.article_data[(self.article_data.index >= self.query["start_date"]) & (self.article_data.index <= self.query["end_date"])]
+        if self.vector_data is not None and not self.vector_data.empty:
+            self.vector_data = self.vector_data[(self.vector_data.index >= self.query["start_date"]) & (self.vector_data.index <= self.query["end_date"])]
+        if self.preprocess_data is not None and not self.preprocess_data.empty:
+            self.preprocess_data = self.preprocess_data[(self.preprocess_data.index >= self.query["start_date"]) & (self.preprocess_data.index <= self.query["end_date"])]
+        if self.article_data is not None and not self.article_data.empty:
+            self.article_data = self.article_data[(self.article_data.index >= self.query["start_date"]) & (self.article_data.index <= self.query["end_date"])]
 
         # Set limit for number of articles per date
-        limit = 30
-        count = self.vector_data.groupby(self.vector_data.index)[self.vector_data.columns[0]].count()
-        valid_date = count >= limit
-
-        self.vector_data = self.vector_data[self.vector_data.index.isin(count[valid_date].index)]
-        self.article_data = self.article_data[self.article_data.index.isin(count[valid_date].index)]
+        if self.vector_data is not None and not self.vector_data.empty:
+            limit = 30
+            count = self.vector_data.groupby(self.vector_data.index)[self.vector_data.columns[0]].count()
+            valid_date = count >= limit
+            self.vector_data = self.vector_data[self.vector_data.index.isin(count[valid_date].index)]
+        if self.preprocess_data is not None and not self.preprocess_data.empty:
+            limit = 30
+            count = self.preprocess_data.groupby(self.preprocess_data.index)[self.preprocess_data.columns[0]].count()
+            valid_date = count >= limit
+            self.preprocess_data = self.preprocess_data[self.preprocess_data.index.isin(count[valid_date].index)]
+        if self.article_data is not None and not self.article_data.empty:
+            limit = 30
+            count = self.article_data.groupby(self.article_data.index)[self.article_data.columns[0]].count()
+            valid_date = count >= limit
+            self.article_data = self.article_data[self.article_data.index.isin(count[valid_date].index)]
 
     # Get query's openai embedding
     def get_emb(self):
@@ -248,6 +294,42 @@ class Generate:
             sigmoid_score = pd.concat([sigmoid_score, daily_art[['headline', 'body_txt']]], axis=1)
 
         return sigmoid_score
+
+    # Generate Count Index
+    def generate_count(self):
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------COMPUTE SCORE-------------------------------------------------------------------
+        print("-" * 60 + "\nComputing score...")
+        # Compute score
+        self.preprocess_data['score'] = self.preprocess_data[self.preprocess_column].str.count(self.query['label'])
+        score = self.preprocess_data[['score']]
+
+        # --------------------------------------------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------AGGREGATE---------------------------------------------------------------------
+        # Add article
+        art = pd.concat([score, self.article_data[['headline', 'body_txt']]], axis=1)
+        art = art.sort_values(by='score', ascending=False)
+
+        # Aggregate to daily timeframe
+        score = score.groupby('date').sum()
+        score.columns = ['score']
+
+        # Aggregate to monthly timeframe or daily timeframe
+        if self.interval == "M":
+            # Retrieve top article per month
+            monthly_art = art.resample('M').first()
+
+            # Join score and article
+            score = score.resample('M').mean()
+            score = pd.concat([score, monthly_art[['headline', 'body_txt']]], axis=1)
+
+        elif self.interval == "D":
+            daily_art = art.groupby(art.index.date).first()
+            daily_art.index = pd.to_datetime(daily_art.index)
+            # Join score and article
+            score = pd.concat([score, daily_art[['headline', 'body_txt']]], axis=1)
+
+        return score
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------TEST--------------------------------------------------------------------------
