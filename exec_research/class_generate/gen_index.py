@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
@@ -9,7 +10,7 @@ from tqdm import tqdm
 from utils.system import *
 from class_data.data import Data
 
-class Generate:
+class GenIndex:
     def __init__(self,
                  query=None,
                  type=None,
@@ -20,7 +21,9 @@ class Generate:
                  article_data=None,
                  tfidf=None,
                  method=None,
-                 interval=None
+                 interval=None,
+                 threshold=None,
+                 alpha=None,
                  ):
 
         '''
@@ -34,6 +37,8 @@ class Generate:
         tfidf (tfidf.vectorizer): Fitted TFIDF Vectorizer
         method (str): Method to compute score for TFIDF (either 'mult' or 'cos_sim')
         interval (str): Date interval for generated index (either 'D' or 'M')
+        threshold (int): Threshold parameter for transformation
+        alpha (float): Time decay alpha
         '''
 
         self.query = query
@@ -46,6 +51,8 @@ class Generate:
         self.tfidf = tfidf
         self.method = method
         self.interval = interval
+        self.threshold = threshold
+        self.alpha = alpha
 
         api_key = json.load(open(get_config() / 'api.json'))['openai_api_key']
         self.client = OpenAI(api_key=api_key)
@@ -60,14 +67,20 @@ class Generate:
                                                 "Extract the label, start date, and end date from this piece of text. " +
                                                 "Enhance the label by including details about what the label is and what is it about. " +
                                                 "For example, if the label is 'ESG'. Enhance it by describing what ESG is and any information closely related to it " +
-                                                "Make the label a coherent paragraph of max three sentences and do not talk about the generated index. Only talk about the label meaning. " +
+                                                "Make the label a descriptive, coherent paragraph and do not talk about the generated index. Only talk about the label meaning. " +
                                                 "If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
                                                 "Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
                                                 "\n\n{\"label\": \"(enhanced_label)\", " +
                                                 "\"start_date\": \"(YYYY-MM-DD)\", " +
                                                 "\"end_date\": \"(YYYY-MM-DD)\"} "
                      }
-                ]
+                ],
+                temperature=1,
+                max_tokens=150,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                seed=123
             )
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
@@ -87,7 +100,7 @@ class Generate:
                                                 "If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
                                                 "Enhance the label by including details about what the label is and what is it about. " +
                                                 "For example, if the label is 'ESG'. Enhance it by describing what ESG is and any information closely related to it " +
-                                                "Make the label a coherent paragraph of max three sentences and do not talk about the generated index. Only talk about the label meaning. " +
+                                                "Make the label a descriptive, coherent paragraph and do not talk about the generated index. Only talk about the label meaning. " +
                                                 "Next, create three different lists of length 3 each that store 3 unigrams, 3 bigrams, and 3 trigrams respectively of the enhanced label in all lowercase. " +
                                                 "\n\n Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
                                                 "{\"unigram\": [\"(unigram1)\", ... , \"(unigram3)\"], " +
@@ -96,7 +109,13 @@ class Generate:
                                                 "\"start_date\": \"(YYYY-MM-DD)\", " +
                                                 "\"end_date\": \"(YYYY-MM-DD)\"} "
                      }
-                ]
+                ],
+                temperature=1,
+                max_tokens=150,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                seed=123
             )
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
@@ -119,7 +138,13 @@ class Generate:
                                                 "\"start_date\": \"(YYYY-MM-DD)\", " +
                                                 "\"end_date\": \"(YYYY-MM-DD)\"} "
                      }
-                ]
+                ],
+                temperature = 1,
+                max_tokens = 150,
+                top_p = 1,
+                frequency_penalty = 0,
+                presence_penalty = 0,
+                seed = 123
             )
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
@@ -164,6 +189,15 @@ class Generate:
     def get_tfidf(self, ngram):
         return self.tfidf.transform([ngram])
 
+    # Time decay
+    @staticmethod
+    def time_decay(series, alpha):
+        end_of_month = series.index.to_period('M').to_timestamp('M') + pd.offsets.MonthEnd(1)
+        days_diff = (end_of_month - series.index).days
+        decay_factors = np.exp(-alpha * days_diff)
+        decayed_scores = series * decay_factors
+        return decayed_scores
+
     # Generate Embedding Index
     def generate_emb(self):
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -184,12 +218,18 @@ class Generate:
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # ---------------------------------------------------------------------APPLY TRANSFORMATION---------------------------------------------------------------
         # Apply RELU transformation
-        relu_score = np.maximum(0, self.vector_data['score'] - 0.75)
+        relu_score = np.maximum(0, self.vector_data['score'] - self.threshold)
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # ---------------------------------------------------------------------------AGGREGATE--------------------------------------------------------------------
         # Add article
         relu_score.index.names = ['date']
+
+        # Apply time decay
+        # relu_score = self.time_decay(relu_score, self.alpha)
+        relu_score = relu_score.to_frame('score')
+
+        # Get articles
         art = pd.concat([relu_score, self.article_data[['headline', 'body_txt']]], axis=1)
         art = art.sort_values(by='score', ascending=False)
 
@@ -199,12 +239,19 @@ class Generate:
 
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
-            # Retrieve top article per month
+            # # Retrieve top article per month
             monthly_art = art.resample('M').first()
 
             # Join score and article
             relu_score = relu_score.resample('M').mean()
             relu_score = pd.concat([relu_score, monthly_art[['headline', 'body_txt']]], axis=1)
+
+            # # Aggregate decayed scores and normalize by sum of decay factors
+            # relu_score = relu_score.resample('M').sum()
+            # # Retrieve top article per month (consider adjusting this part to align with decayed scores logic)
+            # monthly_art = art.resample('M').first()
+            # # Join decayed average score and article
+            # relu_score = pd.concat([relu_score, monthly_art[['headline', 'body_txt']]], axis=1)
 
         elif self.interval == "D":
             daily_art = art.groupby(art.index.date).first()
@@ -263,8 +310,8 @@ class Generate:
         # ---------------------------------------------------------------------APPLY TRANSFORMATION---------------------------------------------------------------
         # Apply Sigmoid transformation
         score = self.vector_data[self.vector_data.columns[1:]]
-        sigmoid_score = 1 / (1 + np.exp(-(0.75 * score + -1)))
-        sigmoid_score = np.maximum(0, score - 0.02)
+        sigmoid_score = 1 / (1 + np.exp(-(self.threshold * score + -1)))
+        sigmoid_score = np.maximum(0, score - self.threshold)
         sigmoid_score = sigmoid_score.mean(axis=1).to_frame("score")
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -336,18 +383,36 @@ class Generate:
 if __name__ == "__main__":
     # Load openai embeddings
     wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
-    wsj_openai = wsj_openai.concat_files(3)
+    wsj_openai = wsj_openai.concat_files(10)
 
     # Load articles
     wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    wsj_art = wsj_art.concat_files(3)
+    wsj_art = wsj_art.concat_files(1)
 
-    # Query
-    query = 'Generate an index with label ESG from 1984-01-02 to 1984-01-23'
+    # Equal data
+    wsj_openai = wsj_openai.head(10000)
+    wsj_art = wsj_art.head(10000)
+
+    # Params
     type = 'embedding'
     vector_column = 'ada_embedding'
-    interval = "M"
+    interval = 'M'
 
     # Generate
-    generate = Generate(query=query, type=type, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval="M")
-    index = generate.generate_emb()
+    query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
+    generate = GenIndex(query=query,
+                        type=type,
+                        vector_data=wsj_openai,
+                        vector_column=vector_column,
+                        article_data=wsj_art,
+                        interval=interval,
+                        threshold=0.77,
+                        alpha=0.01)
+    esg = generate.generate_emb()
+    esg.plot()
+    plt.title('ESG Index Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('ESG Score')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
