@@ -1,6 +1,7 @@
 import json
 import time
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -50,9 +51,9 @@ class EvalIndex:
         for attempt in range(retry_attempts):
             try:
                 response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4",
                     messages=[
-                        {"role": "user", "content": f"Only output a python str of 1, 2, 3, 4, or 5 where larger number means more relevant for this question\n\n: Is this piece of text related to {self.label}: \n\n{article_text}"}
+                        {"role": "user", "content": f"Only output 1, 2, 3, 4, or 5 where larger number means more relevant for this question\n\n: Is this piece of text related to {self.label}: \n\n{article_text}"}
                     ],
                     temperature=1,
                     max_tokens=150,
@@ -60,7 +61,7 @@ class EvalIndex:
                     frequency_penalty=0,
                     presence_penalty=0,
                 )
-                return response.choices[0].message.content.strip()
+                return int(response.choices[0].message.content.strip())
             except RateLimitError as e:
                 print(f"Rate limit exceeded, retrying in {retry_wait} seconds...")
                 time.sleep(retry_wait)
@@ -96,32 +97,33 @@ class EvalIndex:
         return self.index
 
     def count(self, eval):
-        # Print the counts for each rank
         print("-" * 60)
-        rank = ['1', '2', '3', '4', '5']
-        for r in rank:
-            col = eval.loc[eval[self.eval_col] == r]
-            print(f"Number of {r}: {len(col)}/{len(eval)}")
+        rank = [1, 2, 3, 4, 5]
 
-        score_column = 'score'
+        # Prepare a DataFrame for plotting
+        data_for_plotting = pd.DataFrame()
+
+        for r in rank:
+            # Filter rows by rank
+            subset = eval[eval[self.eval_col] == r]
+            print(f"Number of {r}: {len(subset)}/{len(eval)}")
+
+            # Append to the plotting DataFrame
+            temp_df = pd.DataFrame({
+                'Rank': r,
+                'Score': subset['score']
+            })
+            data_for_plotting = pd.concat([data_for_plotting, temp_df], ignore_index=True)
 
         # Plot setup
-        plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(10, 3))
         sns.set(style="whitegrid")
-
-        # Plotting the distribution of scores for each rank
-        for r in rank:
-            subset = eval[eval[self.eval_col] == r][score_column]
-            if subset.var() == 0:
-                print(f"Skipping Rank {r} due to 0 variance")
-                continue
-            sns.kdeplot(subset, fill=True, label=f'Rank {r}', common_norm=False)
-
-        # Finalizing the plot
-        plt.title('Distribution of Scores by Rank')
-        plt.xlabel('Score')
-        plt.ylabel('Density')
-        plt.legend(title='Rank')
+        sns.scatterplot(data=data_for_plotting, x='Rank', y='Score', hue='Rank', palette='deep', s=100, alpha=0.7)
+        plt.title('Scatter Plot of Score by Rank')
+        plt.xlabel('Rank')
+        plt.ylabel('Score')
+        plt.legend(title='Rank', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
         plt.show()
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -50,6 +50,16 @@ class Data:
             # Rename column
             self.data.columns = ['daily_pol']
             return self.data
+        elif self.name == 'epu_data':
+            # Remove Last Row
+            self.data = self.data.iloc[:-1]
+            # Set index
+            self.data['date'] = pd.to_datetime(self.data['Year'].astype(int).astype(str) + '-' + self.data['Month'].astype(int).astype(str) + '-01').dt.to_period("M").dt.to_timestamp("M")
+            self.data = self.data.set_index('date')
+            # Get correct column
+            self.data = self.data[['News_Based_Policy_Uncert_Index']]
+            self.data.columns = ['epu']
+            return self.data
         elif self.name == 'categorical_epu_data':
             # Rename columns
             column_names = ['date', 'epu_month', 'mon_pol', 'fisc_pol', 'tax', 'gov_spend', 'health_care',

@@ -65,9 +65,10 @@ class GenIndex:
                     {"role": "user", "content": f"Here is the text: {self.query}" +
                                                 "\n\n :: " +
                                                 "Extract the label, start date, and end date from this piece of text. " +
-                                                "Enhance the label by including details about what the label is and what is it about. " +
-                                                "For example, if the label is 'ESG'. Enhance it by describing what ESG is and any information closely related to it " +
-                                                "Make the label a descriptive, coherent paragraph and do not talk about the generated index. Only talk about the label meaning. " +
+                                                "Next, do this for the label you extracted. I have a large number of news articles. I want to track how much each article is about the label. "
+                                                "I am going to use openai's embedding model to compare the cosine similarity between each article and a paragraph of expanded queries that represent the label. " +
+                                                "Generate an expansive, diverse paragraph of expanded labels that form sentences with minimal stop words to make it a coherent paragraph. "
+                                                "This will be the new enhanced_label that you return. " +
                                                 "If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
                                                 "Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
                                                 "\n\n{\"label\": \"(enhanced_label)\", " +
@@ -78,9 +79,9 @@ class GenIndex:
                 temperature=1,
                 max_tokens=150,
                 top_p=1,
-                frequency_penalty=0,
+                frequency_penalty=0.5,
                 presence_penalty=0,
-                seed=123
+                seed=1
             )
             summary = response.choices[0].message.content.strip()
             start_index = summary.find('{')
@@ -155,14 +156,6 @@ class GenIndex:
 
         print(f"Here is the query: \n{self.query}")
 
-        # Set timeframe
-        if self.vector_data is not None and not self.vector_data.empty:
-            self.vector_data = self.vector_data[(self.vector_data.index >= self.query["start_date"]) & (self.vector_data.index <= self.query["end_date"])]
-        if self.preprocess_data is not None and not self.preprocess_data.empty:
-            self.preprocess_data = self.preprocess_data[(self.preprocess_data.index >= self.query["start_date"]) & (self.preprocess_data.index <= self.query["end_date"])]
-        if self.article_data is not None and not self.article_data.empty:
-            self.article_data = self.article_data[(self.article_data.index >= self.query["start_date"]) & (self.article_data.index <= self.query["end_date"])]
-
         # Set limit for number of articles per date
         if self.vector_data is not None and not self.vector_data.empty:
             limit = 30
@@ -179,6 +172,14 @@ class GenIndex:
             count = self.article_data.groupby(self.article_data.index)[self.article_data.columns[0]].count()
             valid_date = count >= limit
             self.article_data = self.article_data[self.article_data.index.isin(count[valid_date].index)]
+
+        # Set timeframe
+        if self.vector_data is not None and not self.vector_data.empty:
+            self.vector_data = self.vector_data[(self.vector_data.index >= self.query["start_date"]) & (self.vector_data.index <= self.query["end_date"])]
+        if self.preprocess_data is not None and not self.preprocess_data.empty:
+            self.preprocess_data = self.preprocess_data[(self.preprocess_data.index >= self.query["start_date"]) & (self.preprocess_data.index <= self.query["end_date"])]
+        if self.article_data is not None and not self.article_data.empty:
+            self.article_data = self.article_data[(self.article_data.index >= self.query["start_date"]) & (self.article_data.index <= self.query["end_date"])]
 
     # Get query's openai embedding
     def get_emb(self):
@@ -224,9 +225,6 @@ class GenIndex:
         # ---------------------------------------------------------------------------AGGREGATE--------------------------------------------------------------------
         # Add article
         relu_score.index.names = ['date']
-
-        # Apply time decay
-        # relu_score = self.time_decay(relu_score, self.alpha)
         relu_score = relu_score.to_frame('score')
 
         # Get articles
@@ -239,19 +237,13 @@ class GenIndex:
 
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
-            # # Retrieve top article per month
-            monthly_art = art.resample('M').first()
+            # Retrieve top article per month
+            monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'score')).reset_index(level=0, drop=True)
+            monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
 
             # Join score and article
             relu_score = relu_score.resample('M').mean()
             relu_score = pd.concat([relu_score, monthly_art[['headline', 'body_txt']]], axis=1)
-
-            # # Aggregate decayed scores and normalize by sum of decay factors
-            # relu_score = relu_score.resample('M').sum()
-            # # Retrieve top article per month (consider adjusting this part to align with decayed scores logic)
-            # monthly_art = art.resample('M').first()
-            # # Join decayed average score and article
-            # relu_score = pd.concat([relu_score, monthly_art[['headline', 'body_txt']]], axis=1)
 
         elif self.interval == "D":
             daily_art = art.groupby(art.index.date).first()
@@ -328,7 +320,8 @@ class GenIndex:
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
             # Retrieve top article per month
-            monthly_art = art.resample('M').first()
+            monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'score')).reset_index(level=0, drop=True)
+            monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
 
             # Join score and article
             sigmoid_score = sigmoid_score.resample('M').mean()
@@ -348,7 +341,8 @@ class GenIndex:
         # ------------------------------------------------------------------------COMPUTE SCORE-------------------------------------------------------------------
         print("-" * 60 + "\nComputing score...")
         # Compute score
-        self.preprocess_data['score'] = self.preprocess_data[self.preprocess_column].str.count(self.query['label'])
+        pattern = rf'\b{self.query["label"].lower()}\b'
+        self.preprocess_data['score'] = self.preprocess_data[self.preprocess_column].str.lower().str.count(pattern)
         score = self.preprocess_data[['score']]
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -364,7 +358,8 @@ class GenIndex:
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
             # Retrieve top article per month
-            monthly_art = art.resample('M').first()
+            monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'score')).reset_index(level=0, drop=True)
+            monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
 
             # Join score and article
             score = score.resample('M').mean()
@@ -381,38 +376,58 @@ class GenIndex:
 # --------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------TEST--------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Load openai embeddings
-    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
-    wsj_openai = wsj_openai.concat_files(10)
+    # # Load openai embeddings
+    # wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
+    # wsj_openai = wsj_openai.concat_files(10)
+    #
+    # # Load articles
+    # wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
+    # wsj_art = wsj_art.concat_files(1)
+    #
+    # # Equal data
+    # wsj_openai = wsj_openai.head(10000)
+    # wsj_art = wsj_art.head(10000)
+    #
+    # # Params
+    # type = 'embedding'
+    # vector_column = 'ada_embedding'
+    # interval = 'M'
+    #
+    # # Generate
+    # query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
+    # generate = GenIndex(query=query,
+    #                     type=type,
+    #                     vector_data=wsj_openai,
+    #                     vector_column=vector_column,
+    #                     article_data=wsj_art,
+    #                     interval=interval,
+    #                     threshold=0.77,
+    #                     alpha=0.01)
+    # esg = generate.generate_emb()
+    # esg.plot()
+    # plt.title('ESG Index Over Time')
+    # plt.xlabel('Date')
+    # plt.ylabel('ESG Score')
+    # plt.xticks(rotation=45)
+    # plt.tight_layout()
+    # plt.show()
 
     # Load articles
     wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    wsj_art = wsj_art.concat_files(1)
-
-    # Equal data
-    wsj_openai = wsj_openai.head(10000)
-    wsj_art = wsj_art.head(10000)
+    wsj_art = wsj_art.concat_files()
+    wsj_art = wsj_art.head(1000)
 
     # Params
-    type = 'embedding'
-    vector_column = 'ada_embedding'
+    type = 'count'
+    preprocess_column = 'body_txt'
     interval = 'M'
 
-    # Generate
     query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
     generate = GenIndex(query=query,
                         type=type,
-                        vector_data=wsj_openai,
-                        vector_column=vector_column,
+                        preprocess_data=wsj_art,
+                        preprocess_column=preprocess_column,
                         article_data=wsj_art,
-                        interval=interval,
-                        threshold=0.77,
-                        alpha=0.01)
-    esg = generate.generate_emb()
-    esg.plot()
-    plt.title('ESG Index Over Time')
-    plt.xlabel('Date')
-    plt.ylabel('ESG Score')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
+                        interval=interval)
+    esg = generate.generate_count()
+    esg.plot(figsize=(30, 10))
