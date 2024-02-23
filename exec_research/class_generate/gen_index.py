@@ -62,24 +62,32 @@ class GenIndex:
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "user", "content": f"Here is the text: {self.query}" +
+                    {"role": "user", "content": f"Here is the customer input: {self.query}" +
                                                 "\n\n :: " +
-                                                "Extract the label, start date, and end date from this piece of text. " +
-                                                "Next, do this for the label you extracted. I have a large number of news articles. I want to track how much each article is about the label. "
-                                                "I am going to use openai's embedding model to compare the cosine similarity between each article and a paragraph of expanded queries that represent the label. " +
-                                                "Generate an expansive, diverse paragraph of expanded labels that form sentences with minimal stop words to make it a coherent paragraph. "
-                                                "This will be the new enhanced_label that you return. " +
-                                                "If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
-                                                "Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
+                                                "\nExecute these steps:"
+                                                "\nStep 1) Extract the label, start date, and end date from this piece of text. " +
+                                                "\nStep 2) I have a large number of news articles and I am calculating how much each article is about the label. " +
+                                                "I am using OpenAI's text-embedding-ada-002 model to calculate the cosine similarity between each article's embedding and a label's embedding. " +
+                                                "Your task is to enhance the extracted label by expanding it into a list of expanded queries that are clearly separated by commas and spaces formatted " +
+                                                "to maintain proper readability into a coherent paragraph. " +
+                                                "The expanded queries should capture ALL aspects of the customer label with AT LEAST 12 topics. " +
+                                                "The expanded queries should be specific, but must not include single event names or any dates to avoid lookahead bias." +
+                                                "If the customer label is related to Economics and Finance, enrich it by including a wide array of categories related to the label such as "
+                                                "pandemic impacts on economies, economic changes across different sectors, " +
+                                                "policy shifts in response to economic crises, financial market volatility, technological advancements affecting finance, "
+                                                "international trade dynamics, environmental sustainability’s influence on economic policies, monetary policy changes, trade policy effects, etc. " +
+                                                "This paragraph will be the new enhanced_label that you output. " +
+                                                "\nStep 3) If you cannot extract a label, start date, or end date, then store the them as 'none'. " +
+                                                "\nStep 4) Your output should not contain any additional comments or add-ons. YOU MUST ONLY OUTPUT THIS: " +
                                                 "\n\n{\"label\": \"(enhanced_label)\", " +
                                                 "\"start_date\": \"(YYYY-MM-DD)\", " +
                                                 "\"end_date\": \"(YYYY-MM-DD)\"} "
                      }
                 ],
                 temperature=1,
-                max_tokens=150,
+                max_tokens=500,
                 top_p=1,
-                frequency_penalty=0.5,
+                frequency_penalty=1,
                 presence_penalty=0,
                 seed=1
             )
@@ -376,58 +384,54 @@ class GenIndex:
 # --------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------TEST--------------------------------------------------------------------------
 if __name__ == "__main__":
-    # # Load openai embeddings
-    # wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
-    # wsj_openai = wsj_openai.concat_files(10)
-    #
-    # # Load articles
-    # wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    # wsj_art = wsj_art.concat_files(1)
-    #
-    # # Equal data
-    # wsj_openai = wsj_openai.head(10000)
-    # wsj_art = wsj_art.head(10000)
-    #
-    # # Params
-    # type = 'embedding'
-    # vector_column = 'ada_embedding'
-    # interval = 'M'
-    #
-    # # Generate
-    # query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
-    # generate = GenIndex(query=query,
-    #                     type=type,
-    #                     vector_data=wsj_openai,
-    #                     vector_column=vector_column,
-    #                     article_data=wsj_art,
-    #                     interval=interval,
-    #                     threshold=0.77,
-    #                     alpha=0.01)
-    # esg = generate.generate_emb()
-    # esg.plot()
-    # plt.title('ESG Index Over Time')
-    # plt.xlabel('Date')
-    # plt.ylabel('ESG Score')
-    # plt.xticks(rotation=45)
-    # plt.tight_layout()
-    # plt.show()
+    # Load openai embeddings
+    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
+    wsj_openai = wsj_openai.concat_files(10)
 
     # Load articles
     wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    wsj_art = wsj_art.concat_files()
-    wsj_art = wsj_art.head(1000)
+    wsj_art = wsj_art.concat_files(1)
+
+    # Equal data
+    wsj_openai = wsj_openai.head(10000)
+    wsj_art = wsj_art.head(10000)
 
     # Params
-    type = 'count'
-    preprocess_column = 'body_txt'
+    type = 'embedding'
+    vector_column = 'ada_embedding'
     interval = 'M'
 
-    query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
+    # Generate
+    query = 'Generate an index with label US Economic Policy Uncertainty from 1984-01-02 to 2021-12-31'
     generate = GenIndex(query=query,
                         type=type,
-                        preprocess_data=wsj_art,
-                        preprocess_column=preprocess_column,
+                        vector_data=wsj_openai,
+                        vector_column=vector_column,
                         article_data=wsj_art,
-                        interval=interval)
-    esg = generate.generate_count()
-    esg.plot(figsize=(30, 10))
+                        interval=interval,
+                        threshold=0.77,
+                        alpha=0.01)
+    esg = generate.generate_emb()
+    esg.plot()
+    plt.tight_layout()
+    plt.show()
+
+    # # Load articles
+    # wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
+    # wsj_art = wsj_art.concat_files()
+    # wsj_art = wsj_art.head(1000)
+    #
+    # # Params
+    # type = 'count'
+    # preprocess_column = 'body_txt'
+    # interval = 'M'
+    #
+    # query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
+    # generate = GenIndex(query=query,
+    #                     type=type,
+    #                     preprocess_data=wsj_art,
+    #                     preprocess_column=preprocess_column,
+    #                     article_data=wsj_art,
+    #                     interval=interval)
+    # esg = generate.generate_count()
+    # esg.plot(figsize=(30, 10))
