@@ -2,7 +2,10 @@ import glob
 import pandas as pd
 import re
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from tqdm import tqdm
+
 
 class Data:
     def __init__(self,
@@ -23,21 +26,47 @@ class Data:
         self.data = data
         self.name = name
 
-    # Concat all embedding files
-    def concat_files(self, num=None):
+    # Concat all embedding files (not parallelized)
+    def concat_files_slow(self, num=None):
         full_pattern = f'{self.folder_path}/{self.file_pattern}'
         file_list = glob.glob(full_pattern)
         number_extraction_pattern = self.file_pattern.replace('*', r'(\d+)')
         file_list.sort(key=lambda x: int(re.search(number_extraction_pattern, x).group(1)))
-        if num != None:
+        if num is not None:
             df_list = []
-            for i, file in enumerate(file_list):
-                if i == num:
-                    break
+            for i, file in enumerate(tqdm(file_list[:num], desc="Loading Data")):
                 df_list.append(pd.read_parquet(file))
         else:
-            df_list = [pd.read_parquet(file) for file in file_list]
+            df_list = [pd.read_parquet(file) for file in tqdm(file_list, desc="Loading Data")]
         self.data = pd.concat(df_list, axis=0)
+        return self.data
+
+    # Read parquet file
+    def read_parquet_file(self, file):
+        return file, pd.read_parquet(file)
+
+    # Concat all embedding files (parallelized)
+    def concat_files(self, num=None):
+        # Get file
+        full_pattern = f'{self.folder_path}/{self.file_pattern}'
+        file_list = glob.glob(full_pattern)
+        number_extraction_pattern = self.file_pattern.replace('*', r'(\d+)')
+        file_list.sort(key=lambda x: int(re.search(number_extraction_pattern, x).group(1)))
+
+        # Adjust num to the length of file_list if it's None or greater than the list
+        num = num if num is not None and num <= len(file_list) else len(file_list)
+
+        # Read files in parallel
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.read_parquet_file, file) for file in file_list[:num]]
+            df_dict = {}
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Loading Data"):
+                file, df = future.result()
+                df_dict[file] = df
+
+        # Ensure DataFrames are concatenated in the correct order
+        ordered_dfs = [df_dict[file] for file in file_list[:num]]
+        self.data = pd.concat(ordered_dfs, axis=0)
         return self.data
 
     # Format Dependent Variables
@@ -49,6 +78,11 @@ class Data:
             self.data = self.data[['daily_policy_index']]
             # Rename column
             self.data.columns = ['daily_pol']
+            return self.data
+        elif self.name == 'recession_attention':
+            self.data.date = pd.to_datetime(self.data.date).dt.to_period('M').dt.to_timestamp('M')
+            self.data = self.data.set_index('date')
+            self.data.columns = ['recession']
             return self.data
         elif self.name == 'epu_data':
             # Remove Last Row
@@ -87,6 +121,16 @@ class Data:
             self.data['date'] = pd.to_datetime(self.data['date'])
             self.data = self.data.set_index('date')
             self.data = self.data.apply(lambda group: group.resample('M').ffill())
+            return self.data
+        elif self.name == 'ai_google_trend':
+            self.data.columns = ['date', 'ai']
+            self.data.date = pd.to_datetime(self.data.date).dt.to_period('M').dt.to_timestamp('M')
+            self.data = self.data.set_index('date')
+            return self.data
+        elif self.name == 'esg_google_trend':
+            self.data.columns = ['date', 'esg']
+            self.data.date = pd.to_datetime(self.data.date).dt.to_period('M').dt.to_timestamp('M')
+            self.data = self.data.set_index('date')
             return self.data
 
     # Format Embedding

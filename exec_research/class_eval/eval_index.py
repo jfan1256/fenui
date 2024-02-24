@@ -11,7 +11,7 @@ from openai import OpenAI, RateLimitError
 from tqdm import tqdm
 
 from class_data.data import Data
-from class_generate.gen_index import GenIndex
+from class_generate.gen_emb import GenEmb
 from utils.system import get_config, get_format_data
 
 
@@ -145,17 +145,11 @@ if __name__ == "__main__":
     type = 'embedding'
     vector_column = 'ada_embedding'
     interval = 'M'
+    threshold = 0.77
 
     # Generate
     query = 'Generate an index with label ESG from 1984-01-02 to 2021-12-31'
-    generate = GenIndex(query=query,
-                        type=type,
-                        vector_data=wsj_openai,
-                        vector_column=vector_column,
-                        article_data=wsj_art,
-                        interval=interval,
-                        threshold=0.77,
-                        alpha=0.01)
+    generate = GenEmb(query=query, type=type, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     esg = generate.generate_emb()
 
     # Evaluate
