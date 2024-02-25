@@ -96,8 +96,7 @@ class Data:
             return self.data
         elif self.name == 'categorical_epu_data':
             # Rename columns
-            column_names = ['date', 'epu_month', 'mon_pol', 'fisc_pol', 'tax', 'gov_spend', 'health_care',
-                            'nat_sec', 'ent_prog', 'reg', 'fin_reg', 'trade_pol', 'debt']
+            column_names = ['date', 'epu_month', 'mon_pol', 'fisc_pol', 'tax', 'gov_spend', 'health_care', 'nat_sec', 'ent_prog', 'reg', 'fin_reg', 'trade_pol', 'debt']
             self.data.columns = column_names
             # Remove Last Row
             self.data = self.data.iloc[:-1]
