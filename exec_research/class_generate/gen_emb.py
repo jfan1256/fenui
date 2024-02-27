@@ -52,15 +52,16 @@ class GenEmb:
 
         # Embedding Extraction
         response = self.client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4-turbo-preview",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "user", "content": f"Here is the customer input: {self.query} "
-                                            "Execute these steps: "
-                                            "Step 1) Extract the label, start date, and end date from this piece of text. "
-                                            "Step 2) If you cannot extract a label, start date, or end date, then store them as 'none'. "
-                                            "Step 3) Output this: {label: label, start_date: YYYY-MM-DD, end_date: YYYY-MM-DD}. "
-                                            "Provide the output in JSON format."
+                {"role": "user", "content": "Given a user's textual request about tracking the attention index of a specific topic or narrative over time, extract the relevant fields so that they can be supplied to function in a structured format."
+                                            f"Here is the user’s request input: {self.query}"
+                                            "The fields to extract are:"
+                                            "query: The specific topic or narrative the user wants to track. If not specified, return null."
+                                            "start_date: The start date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
+                                            "end_date: The end date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
+                                            "Return a JSON object with the keys query, start_date, and end_date. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
                  }
             ],
             temperature=0.75,
@@ -74,19 +75,17 @@ class GenEmb:
         self.query = json.loads(summary)
 
         response = self.client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4-turbo-preview",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "user", "content": f"Here is the customer label: {self.query['label']} "
-                                            "For background: "
-                                            "We have over 800000 news articles. "
-                                            "We aim to measure the extent to which each article pertains to the customer label provided by the customer. "
-                                            f"We will utilize OpenAI's text-embedding-ada-002 model to generate embeddings for each article, along with embeddings for a comprehensive list of expanded queries that encapsulate the topic specified by the customer label. "
-                                            "Subsequently, we will compute the cosine similarity scores to assess the alignment between the embeddings of each article and those of the expanded queries. "
-                                            "Execute these steps: "
-                                            "Step 1) Transform the customer's label into an extensive set of queries that accurately, thoroughly, and vividly encompass all interpretations, perspectives, and facets of the customer label. "
-                                            "Step 2) Output this: {expanded_queries: [expanded_query_1, expanded_query_2, expanded_query_3]}. "
-                                            "Provide the output in JSON format."
+                {"role": "user", "content": "Your job is to output expanded queries to represent the concept in the input query:"
+                                            f"'{self.query['query']}'"
+                                            "In detail, I have over 800000 news articles."
+                                            "I want to track how much each article pertains to the a topic or a narrative contained in the input query:"
+                                            f"'{self.query['query']}'"
+                                            "I am going to use openai's embedding model to compare the cosine similarity between each article and the list of expanded queries that encapsulate the concept in the input query."
+                                            "Please transform the input query into an extensive set of queries that accurately, thoroughly, and vividly encompass all interpretations, perspectives, and facets of the input query."
+                                            "Please output in JSON format as {expanded_queries: [expanded_query_1, expanded_query_2, expanded_query_3, …]}."
                  }
             ],
             temperature=0.75,
@@ -99,7 +98,7 @@ class GenEmb:
         summary = response.choices[0].message.content.strip()
         summary = json.loads(summary)
         paragraph = '. '.join(summary['expanded_queries']) + '.'
-        self.query['label'] = paragraph
+        self.query['query'] = paragraph
 
         print(f"Here is the query: \n{self.query}")
 
@@ -130,7 +129,7 @@ class GenEmb:
 
     # Get query's openai embedding
     def get_emb(self):
-        text = self.query['label'].replace("\n", " ")
+        text = self.query['query'].replace("\n", " ")
         return self.client.embeddings.create(input=[text], model="text-embedding-ada-002").data[0].embedding
 
     # Compare

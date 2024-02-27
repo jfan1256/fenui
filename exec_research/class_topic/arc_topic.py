@@ -4,7 +4,7 @@ from class_data.data import Data
 from class_generate.gen_emb import GenEmb
 from utils.system import get_format_data
 
-class Topic:
+class ArcTopic:
     def __init__(self,
                  index=None,
                  score_col=None,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label ESG from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    topic = Topic(index=index, score_col='score', article_col='body_txt', top_n=100, n_topic=20, output="esg_index")
+    topic = ArcTopic(index=index, score_col='score', article_col='body_txt', top_n=100, n_topic=20, output="esg_index")
     topic.get_topic()
 
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
