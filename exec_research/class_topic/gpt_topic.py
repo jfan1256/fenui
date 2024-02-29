@@ -2,9 +2,14 @@ import numpy as np
 import ray
 import json
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from openai import OpenAI
 from tqdm import tqdm
+from tenacity import retry, wait_random_exponential, stop_after_attempt, before_sleep_log
 
 from class_data.data import Data
 from class_generate.gen_emb import GenEmb
@@ -81,6 +86,11 @@ class GptTopic:
         subtopics = summary['subtopic']
         return subtopics
 
+    @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6), before_sleep=before_sleep_log(logger, logging.INFO))
+    def retry_gpt_topic(self, query, article_text):
+        # Call the remote function from within the retry logic
+        return self.gpt_topic.remote(query, article_text)
+
     def get_gpt_topic(self, data):
         ray.init(num_cpus=16, ignore_reinit_error=True)
         num_batches = np.ceil(len(data) / self.batch_size)
@@ -91,11 +101,11 @@ class GptTopic:
             batch = data[self.article_col][start_index:end_index]
 
             # Start asynchronous tasks for the batch
-            futures = [self.gpt_topic.remote(self.query, text) for text in batch]
-            embeddings = ray.get(futures)
+            futures = [self.retry_gpt_topic(self.query, text) for text in batch]
+            batch_summaries = ray.get(futures)
 
             # Update lists
-            all_summary.extend(embeddings)
+            all_summary.extend(batch_summaries)
             time.sleep(1)
 
         data[self.topic_col] = all_summary
@@ -139,7 +149,7 @@ if __name__ == "__main__":
     # Params
     type = 'embedding'
     vector_column = 'ada_embedding'
-    interval = 'D'
+    interval = 'M'
     threshold = 0.77
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -148,5 +158,5 @@ if __name__ == "__main__":
     query = 'Generate an index with label Artificial Intelligence from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    topic = GptTopic(query='Artificial Intelligence', index=index, score_col='score', article_col='body_txt', topic_col='topic', top_n=50, batch_size=16, output="ai_index")
+    topic = GptTopic(query='Artificial Intelligence', index=index, score_col='score', article_col='body_txt', topic_col='topic', top_n=100, batch_size=16, output="ai_index")
     topic.get_topic()

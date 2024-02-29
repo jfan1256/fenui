@@ -314,8 +314,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label Artificial Intelligence from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    index = generate.join_index(index=index, file_path='ai_google_trend.parquet.brotli')
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score', 'official']], names=['Artificial Intelligence', 'Artificial Intelligence (Google Trend)'], output='ai_index')
+    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score']], names=['Artificial Intelligence'], output='ai_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
