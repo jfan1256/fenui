@@ -130,7 +130,7 @@ class EvalIndex:
 # --------------------------------------------------------------------------EVAL--------------------------------------------------------------------------
 if __name__ == "__main__":
     # Load openai embeddings
-    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
+    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_textemb3small_*')
     wsj_openai = wsj_openai.concat_files(10)
 
     # Load articles

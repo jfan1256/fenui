@@ -79,6 +79,12 @@ class Data:
             # Rename column
             self.data.columns = ['daily_pol']
             return self.data
+        elif self.name == 'fsi':
+            self.data = self.data[['Date', 'OFR FSI']]
+            self.data.Date = pd.to_datetime(self.data.Date)
+            self.data.columns = ['date', 'fsi']
+            self.data = self.data.set_index('date')
+            return self.data
         elif self.name == 'recession_attention':
             self.data.date = pd.to_datetime(self.data.date).dt.to_period('M').dt.to_timestamp('M')
             self.data = self.data.set_index('date')

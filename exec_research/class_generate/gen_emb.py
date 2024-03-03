@@ -130,13 +130,15 @@ class GenEmb:
     # Get query's openai embedding
     def get_emb(self):
         text = self.query['query'].replace("\n", " ")
-        return self.client.embeddings.create(input=[text], model="text-embedding-ada-002").data[0].embedding
+        return self.client.embeddings.create(input=[text], model="text-embedding-3-small").data[0].embedding
 
     # Compare
     @staticmethod
     def compare_index(index, file_path):
         official_index = pd.read_parquet(get_format_data() / file_path)
         official_index.columns = ['official']
+        if not official_index.index.freqstr == 'M':
+            official_index = official_index.resample('M').mean()
         index = index.join(official_index).dropna()
         scaler = MinMaxScaler(feature_range=(0, 1))
         data_to_scale = index[['score', 'official']]
@@ -152,6 +154,10 @@ class GenEmb:
     def join_index(index, file_path):
         official_index = pd.read_parquet(get_format_data() / file_path)
         official_index.columns = ['official']
+        official_index = pd.read_parquet(get_format_data() / file_path)
+        official_index.columns = ['official']
+        if not official_index.index.freqstr == 'M':
+            official_index = official_index.resample('M').mean()
         index = index.join(official_index)
         scaler = MinMaxScaler(feature_range=(0, 1))
         data_to_scale = index[['score', 'official']]
@@ -168,9 +174,9 @@ class GenEmb:
 
         # Save prompt and label
         with open(f'../../plot/{output}/{output}.txt', 'w') as file:
-            file.write(f"Prompt: {prompt}\n")
-            file.write(f"Label: {label}\n")
-            file.write(f"Pearson: {pearson}\n")
+            file.write(f"Prompt: {prompt}\n\n")
+            file.write(f"Label: {label}\n\n")
+            file.write(f"Pearson: {pearson}\n\n")
 
         # Get plot
         plt.figure(figsize=(10, 5))
@@ -269,7 +275,7 @@ if __name__ == "__main__":
     # wsj_art = wsj_art.head(10000)
 
     # Load openai embeddings
-    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
+    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_textemb3small_*')
     wsj_openai = wsj_openai.concat_files()
 
     # Load articles
@@ -277,10 +283,9 @@ if __name__ == "__main__":
     wsj_art = wsj_art.concat_files()
 
     # Params
-    type = 'embedding'
     vector_column = 'ada_embedding'
     interval = 'M'
-    threshold = 0.77
+    threshold = 0.40
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -289,7 +294,7 @@ if __name__ == "__main__":
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
     index = generate.join_index(index=index, file_path='esg_google_trend.parquet.brotli')
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score', 'official']], names=['ESG', 'ESG (Google Trend)'], output='esg_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=0, data=index[['score', 'official']], names=['ESG', 'ESG (Google Trend)'], output='esg_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -298,7 +303,16 @@ if __name__ == "__main__":
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
     index, pearson_corr = generate.compare_index(index=index, file_path='epu.parquet.brotli')
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=pearson_corr, data=index[['score', 'official']], names=['US EPU', 'US EPU (Baker et al.)'], output='usepu_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=pearson_corr, data=index[['score', 'official']], names=['US EPU', 'US EPU (Baker et al.)'], output='usepu_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-" * 120)
+    query = 'Generate an index with label Financial Stress from January 1st, 1984, to December 31st, 2021.'
+    generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
+    index = generate.generate_emb()
+    index, pearson_corr = generate.compare_index(index=index, file_path='fsi.parquet.brotli')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=pearson_corr, data=index[['score', 'official']], names=['Financial Stress', 'Financial Stress (OFR)'], output='fsi_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -306,7 +320,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label US-China Trade War from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score']], names=['US-China Trade War'], output='uschinatradewar_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=0, data=index[['score']], names=['US-China Trade War'], output='uschinatradewar_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -314,7 +328,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label Artificial Intelligence from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score']], names=['Artificial Intelligence'], output='ai_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=0, data=index[['score']], names=['Artificial Intelligence'], output='ai_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -322,7 +336,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label Blockchain from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score']], names=['Blockchain'], output='blockchain_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=0, data=index[['score']], names=['Blockchain'], output='blockchain_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -330,7 +344,7 @@ if __name__ == "__main__":
     query = 'Generate an index with label COVID-19 from January 1st, 1984, to December 31st, 2021.'
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=0, data=index[['score']], names=['COVID-19'], output='covid19_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=0, data=index[['score']], names=['COVID-19'], output='covid19_index')
 
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -339,4 +353,4 @@ if __name__ == "__main__":
     generate = GenEmb(query=query, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, threshold=threshold)
     index = generate.generate_emb()
     index, pearson_corr = generate.compare_index(index=index, file_path='recession.parquet.brotli')
-    generate.exec_plot(prompt=query, label=generate.query['label'], pearson=pearson_corr, data=index[['score', 'official']], names=['Economic Recession', 'Economic Recession (Bybee et al.)'], output='economicrecession_index')
+    generate.exec_plot(prompt=query, label=generate.query['query'], pearson=pearson_corr, data=index[['score', 'official']], names=['Economic Recession', 'Economic Recession (Bybee et al.)'], output='economicrecession_index')
