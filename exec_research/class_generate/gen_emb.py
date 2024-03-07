@@ -265,11 +265,11 @@ if __name__ == "__main__":
     # # Load openai embeddings
     # wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
     # wsj_openai = wsj_openai.concat_files(10)
-    #
+
     # # Load articles
     # wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
     # wsj_art = wsj_art.concat_files(1)
-    #
+
     # # Equal data
     # wsj_openai = wsj_openai.head(10000)
     # wsj_art = wsj_art.head(10000)
