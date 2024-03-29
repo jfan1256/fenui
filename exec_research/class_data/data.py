@@ -79,9 +79,22 @@ class Data:
             # Rename column
             self.data.columns = ['daily_pol']
             return self.data
+        elif self.name == 'ir':
+            # Rename columns
+            self.data.columns = ['date', 'ir']
+            # Convert date to datetime
+            self.data.date = pd.to_datetime(self.data.date)
+            self.data = self.data.set_index('date')
+            # Convert data to float
+            self.data['ir'] = pd.to_numeric(self.data['ir'], errors='coerce')
+            self.data['ir'].fillna(0, inplace=True)
+            return self.data
         elif self.name == 'fsi':
+            # Fetch data
             self.data = self.data[['Date', 'OFR FSI']]
+            # Convert date to datetime
             self.data.Date = pd.to_datetime(self.data.Date)
+            # Rename column
             self.data.columns = ['date', 'fsi']
             self.data = self.data.set_index('date')
             return self.data
