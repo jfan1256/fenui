@@ -137,11 +137,11 @@ class GenTfidf:
     @staticmethod
     def exec_plot(prompt, label, pearson, data, names, output):
         # Make Dir
-        plot_dir = f'../../plot/{output}'
+        plot_dir = f'../../view_attention/{output}'
         os.makedirs(plot_dir, exist_ok=True)
 
         # Save prompt and label
-        with open(f'../../plot/{output}/{output}.txt', 'w') as file:
+        with open(f'../../view_attention/{output}/{output}.txt', 'w') as file:
             file.write(f"Prompt: {prompt}\n")
             file.write(f"Label: {label}\n")
             file.write(f"Pearson: {pearson}\n")
