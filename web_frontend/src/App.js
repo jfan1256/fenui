@@ -99,7 +99,7 @@ function App() {
             // const response = await axios.post('https://webbackend-yhzjtissga-ue.a.run.app/generate_plot', { "input_str": userInput });
 
             // Prod (Ngrok)
-            const response = await axios.post("https://3e9a-128-255-131-2.ngrok-free.app/generate_plot", { "input_str": userInput });
+            const response = await axios.post("https://c4f3-128-255-234-12.ngrok-free.app/generate_plot", { "input_str": userInput });
 
             // Parse the plot JSON data
             const plotData = JSON.parse(response.data.gen_plot);

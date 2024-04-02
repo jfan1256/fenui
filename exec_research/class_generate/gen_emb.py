@@ -16,6 +16,7 @@ from class_data.data import Data
 class GenEmb:
     def __init__(self,
                  query=None,
+                 expand=None,
                  info=None,
                  type=None,
                  vector_data=None,
@@ -29,6 +30,7 @@ class GenEmb:
 
         '''
         query (str): User input (should contain a label, start date and end date)
+        expand(bool): Expand query or not
         info (bool): Extract info or not (i.e., info=False if query='Systemic Financial Distress')
         type (str): Method to generate an index (either 'embedding', 'tfidf', 'count')
         vector_data (pd.DataFrame): Pandas dataframe that stores the article vectors
@@ -41,6 +43,7 @@ class GenEmb:
         '''
 
         self.query = query
+        self.expand = expand
         self.info = info
         self.type = type
         self.vector_data = vector_data
@@ -242,7 +245,10 @@ class GenEmb:
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # ------------------------------------------------------------------------EXPAND QUERY--------------------------------------------------------------------
         # Expand query
-        self._expand_query()
+        if self.expand:
+            self._expand_query()
+        else:
+            self.query['expanded_query'] = self.query['query']
         print(f"Here is the query: \n{self.query}")
 
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -352,7 +358,7 @@ if __name__ == "__main__":
     # # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # # print("-"*120)
     # # query = 'Generate an index with label ESG from January 1st, 1984, to December 31st, 2021.'
-    # # generate = GenEmb(query=query, info=True, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # # generate = GenEmb(query=query, expand=True, info=True, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # # index, expanded_query, threshold = generate.generate_emb()
     # # index = generate._join_index(index=index, file_path='esg_google_trend.parquet.brotli')
     # # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed', 'Non-Transformed'], output='esg_index')
@@ -361,7 +367,7 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'ESG'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # index = generate._join_index(index=index, file_path='esg_google_trend.parquet.brotli')
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed', 'Non-Transformed'], output='esg_index')
@@ -370,7 +376,7 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'US Economic Policy Uncertainty'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # index, pearson_corr = generate._compare_index(index=index, file_path='epu.parquet.brotli')
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['US EPU', 'US EPU (Baker et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='usepu_index')
@@ -379,7 +385,7 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'Inflation'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # index, pearson_corr = generate._compare_index(index=index, file_path='ir.parquet.brotli')
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Inflation', '5-Year Breakeven Inflation Rate (FRED)'], index_name_research=['Transformed', 'Non-Transformed'], output='inflation_index')
@@ -388,7 +394,7 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-" * 120)
     # query = 'Systemic Financial Stress'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # index, pearson_corr = generate._compare_index(index=index, file_path='fsi.parquet.brotli')
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Financial Stress', 'Financial Stress (Baker et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='fsi_index')
@@ -397,16 +403,16 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'Economic Recession'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # index, pearson_corr = generate._compare_index(index=index, file_path='recession.parquet.brotli')
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Economic Recession', 'Economic Recession (Bybee et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='economicrecession_index')
-
+    #
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-" * 120)
     # query = 'Market Crash'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Market Crash'], index_name_research=['Transformed', 'Non-Transformed'], output='marketcrash_index')
     #
@@ -414,23 +420,23 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-" * 120)
     # query = 'Stock Market Bubble'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Stock Market Bubble'], index_name_research=['Transformed', 'Non-Transformed'], output='stockmarketbubble_index')
-
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    print("-"*120)
-    query = 'US-China Trade War'
-    generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    index, expanded_query, threshold = generate.generate_emb()
-    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['US-China Trade War'], index_name_research=['Transformed', 'Non-Transformed'], output='uschinatradewar_index')
-
+    #
+    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # print("-"*120)
+    # query = 'US-China Trade War'
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # index, expanded_query, threshold = generate.generate_emb()
+    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['US-China Trade War'], index_name_research=['Transformed', 'Non-Transformed'], output='uschinatradewar_index')
+    #
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'Artificial Intelligence'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Artificial Intelligence'], index_name_research=['Transformed', 'Non-Transformed'], output='ai_index')
     #
@@ -438,7 +444,7 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'Blockchain'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Blockchain'], index_name_research=['Transformed', 'Non-Transformed'], output='blockchain_index')
     #
@@ -446,6 +452,17 @@ if __name__ == "__main__":
     # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # print("-"*120)
     # query = 'COVID-19'
-    # generate = GenEmb(query=query, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
     # index, expanded_query, threshold = generate.generate_emb()
     # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['COVID-19'], index_name_research=['Transformed', 'Non-Transformed'], output='covid19_index')
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    language = [('English', 'Inflation'), ('Chinese', '通货膨胀'), ('Russian', 'инфляция'), ('Spanish', 'inflación'), ('French', "d'inflation"), ('Arabic', 'زِيادة في الأَسْعار')]
+    for i, (lan, query) in enumerate(language):
+        generate = GenEmb(query=query, expand=False, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
+        index, expanded_query, threshold = generate.generate_emb()
+        if lan == 'English':
+            keep = index
+            continue
+        print(f"US and {lan} Correlation: {keep['relu_score'].corr(index['relu_score'])}")
