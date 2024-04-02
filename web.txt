@@ -1,0 +1,10 @@
+Steps to setup website:
+1. Start Docker Desktop
+2. Start Milvus Server via these two commands (should be run under the directory where the docker-compose.yml is saved)
+    -> docker compose up -d
+    -> docker compose ps
+3. Start Ngrok connection by running ngrok.exe under .ngrok folder and run this command:
+    -> ngrok start --all --config "C:\\Jonathan\\QuantResearch\\AlgoTradingModels\\fenui\\ngrok\\ngrok.yml"
+4. Update tcp_host, tcp_server, and http_link in ngrok.json based off new ngrok connection
+5. Start Flask Server by running main.py under web_backend
+6. Update http_link/generate_index in App.js for Flask Backend Connection

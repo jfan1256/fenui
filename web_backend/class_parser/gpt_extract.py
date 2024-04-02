@@ -19,7 +19,7 @@ class GPTExtract:
     def gpt_extract(self):
         client = OpenAI(api_key=self.api_key)
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4-turbo-preview",
             messages=[
                 {"role": "user", "content": f"\n\n Here is the text: {input}" +
                                             "Can you extract the label, start date, end date, and transform from this piece of text. " +
