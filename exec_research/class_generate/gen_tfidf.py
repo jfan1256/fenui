@@ -116,7 +116,7 @@ class GenTfidf:
 
     # Get query's tfidf vector
     def get_tfidf(self, ngram):
-        return self.tfidf.transform([ngram])
+        return self.tfidf.p_val([ngram])
 
     # Compare
     @staticmethod

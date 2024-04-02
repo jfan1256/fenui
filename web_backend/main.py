@@ -1,4 +1,6 @@
 import re
+import traceback
+
 import config
 import json
 import time
@@ -8,12 +10,10 @@ from flask import Flask, request, jsonify, g
 from datetime import datetime
 from flask_cors import CORS
 
-from utils.system import get_config
-
 from class_fetch.query_fetch import QueryFetch
 from class_generate.generate_index import GenerateIndex
 from class_plot.plot_plotly import PlotPlotly
-from class_parser.gpt_extract import GPTExtract
+from class_expand.expand_query import ExpandQuery
 
 app = Flask(__name__)
 
@@ -33,6 +33,8 @@ if prod == True:
 else:
     # Local CORS
     CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
+    ngrok_host = None
+    ngrok_port = None
 
 # Log Version
 @app.route("/version", methods=["GET"], strict_slashes=False)
@@ -47,8 +49,8 @@ def version():
 def generate_plot():
     '''
     To test local flask server run this:
-        1. Start the flask server by cding to the directory that this file is located in and running this in powershell: python app.py
-        2. To test the server: Invoke-WebRequest -Uri http://localhost:5000/generate_plot -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"input_str": "Label: artificial intelligence, Start Date: 2010-01-01, End Date: 2010-01-01, Transform: relu"}'
+        1. Start the flask server by cding to the directory that this file is located in and running this in powershell: python main.py
+        2. To test the server: Invoke-WebRequest -Uri http://localhost:5000/generate_plot -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"input_str": "Label: artificial intelligence, Start Date: 2010-01-01, End Date: 2010-01-01, P-val: 0.01"}'
     '''
 
      # Extract and parse input string
@@ -56,46 +58,31 @@ def generate_plot():
     input_str = data.get('input_str', '')
 
     # Use GPTExtract to retrieve the required information
-    gpt_extract = GPTExtract(input=input_str)
+    expand_query = ExpandQuery(query=input_str)
 
     try:
-        extracted_info = gpt_extract.gpt_extract()
-    except:
+        extracted_info = expand_query.execute()
+    except Exception as e:
+        print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Invalid input format, please follow the desired input message format.'}), 400
 
 
-    label = extracted_info['label']
+    query = extracted_info['expanded_query']
     start_date_str = extracted_info['start_date']
     end_date_str = extracted_info['end_date']
-    transform = extracted_info['transform']
+    p_val = extracted_info['p_val']
 
-    if label == 'None' and start_date_str == 'None' and end_date_str == 'None' and transform == 'None':
-        return jsonify({'error': 'Invalid input format, please clearly specify all required specifications and try again.'}), 400
-    elif label == 'None':
-        return jsonify({'error': 'A label was not specified or not correctly processed, please clearly specify a label and try again.'}), 400
-    elif start_date_str == 'None':
-        return jsonify({'error': 'A start date was not specified or not correctly processed, please clearly specify a start date and try again.'}), 400
-    elif end_date_str == 'None':
-        return jsonify({'error': 'An end date was not specified or not correctly processed, please clearly specify an end date and try again.'}), 400
-    elif transform == 'None':
-        return jsonify({'error': 'A transformation was not specified or not correctly processed, please clearly specify a transformation and try again.'}), 400
-
-    # Check the format of start_date and end_date
-    date_format = r"\d{4}-\d{2}-\d{2}"
-    if not (re.match(date_format, start_date_str) and re.match(date_format, end_date_str)):
-        return jsonify({'error': 'Invalid date format, please use YYYY-MM-DD for start_date and end_date.'}), 400
+    # Check query
+    if query == 'None':
+        return jsonify({'error': 'A query was not specified or not correctly processed, please clearly specify a label and try again.'}), 400
 
     # Convert start_date and end_date to date objects
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-    except ValueError:
+    except Exception as e:
+        print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Invalid date format, please use YYYY-MM-DD for start_date and end_date.'}), 400
-
-    # Check if transform is one of the specified values
-    valid_transforms = ['relu', 'square relu', 'arcsin', 'sigmoid']
-    if transform not in valid_transforms:
-        return jsonify({'error': 'Invalid transform value, valid options are relu, square relu, arcsin, sigmoid.'}), 400
 
     # Check if the date is within the specified range
     min_date = datetime(1980, 1, 1).date()
@@ -109,17 +96,20 @@ def generate_plot():
 
     # Fetch Data from Milvus Database
     try:
-        query_fetch = QueryFetch(label=label, start_date=start_date_str, end_date=end_date_str, prod=True, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
-    except:
+        query_fetch = QueryFetch(label=query, start_date=start_date_str, end_date=end_date_str, prod=prod, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
+    except Exception as e:
+        print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
     query = query_fetch.query_fetch()
 
     # Generate Index and Article index
-    generate_index = GenerateIndex(query=query, transform=transform)
+    print("-" * 60 + f"\nGenerate Index")
+    generate_index = GenerateIndex(query=query, p_vaL=p_val)
     gen_index, gen_combine = generate_index.generate_index()
 
     # Plot Index
-    plot_plotly = PlotPlotly(data=gen_combine)
+    print("-" * 60 + f"\nPlot Index")
+    plot_plotly = PlotPlotly(data=gen_index)
     plot_fig = plot_plotly.get_plot()
 
     return jsonify({
@@ -137,7 +127,6 @@ def after_request(response):
         data["version"] = config.VERSION
         response.set_data(json.dumps(data))
     return response
-
 
 # Execution ID
 @app.before_request

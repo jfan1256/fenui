@@ -4,15 +4,15 @@ import numpy as np
 class GenerateIndex:
     def __init__(self,
                  query=None,
-                 transform=None):
+                 p_vaL=None):
 
         '''
-        query (ChromaDB Dict): Returned dictionary after a ChromaDB Query
-        transform (str): Cosine similarity transformation
+        query (str): Expanded query
+        p_vaL (str): p-value used for cosine similarity threshold
         '''
 
         self.query = query
-        self.transform = transform
+        self.p_val = p_vaL
 
     # Aggregate daily
     @staticmethod
@@ -50,29 +50,27 @@ class GenerateIndex:
         data['date'] = pd.to_datetime(data['date'])
         data = data.set_index('date').sort_index()
 
-        # Apply transformation
-        if self.transform == 'relu':
-            data['transform_cos_sim'] = np.maximum(0, data['cos_sim'] - 0.75)
-        elif self.transform == 'square relu':
-            data['transform_cos_sim'] = np.maximum(0, data['cos_sim'] - 0.75) ** 2
-        elif self.transform == 'sigmoid':
-            data['transform_cos_sim'] = 1 / (1 + np.exp(-(0.5 * data['cos_sim'] + -1)))
-        elif self.transform == 'arcsin':
-            data['transform_cos_sim'] = np.arcsin(np.clip(data['cos_sim'], -1, 1))
+        # Apply transformation (p-value percentile threshold)
+        scores = np.array(data['cos_sim'])
+        percentile = 100 * (1 - self.p_val)
+        threshold = np.percentile(scores, percentile)
+        data['relu_score'] = np.maximum(0, data['cos_sim'] - threshold)
 
         # Create daily uncertainty index
-        gen_index = self._agg_daily(data=data, labels='transform_cos_sim', name='daily_cos_sim')
+        daily_index = self._agg_daily(data=data, labels='relu_score', name='relu_score')
 
-        # Create daily article index (largest cosine similarity)
-        max_cos_sim = data.groupby('date')['transform_cos_sim'].transform('max')
-        mask = data['transform_cos_sim'] == max_cos_sim
-        gen_article = data[mask][['headline', 'document']]
-        gen_article.columns = ['daily_headline', 'daily_document']
+        # Setup article index
+        art = data[['relu_score', 'headline', 'document']]
+        art = art.sort_values(by='relu_score', ascending=False)
 
-        # Combine daily uncertainty index and daily article index
-        gen_combine = pd.concat([gen_index, gen_article], axis=1)
-        gen_combine.index = gen_combine.index.strftime('%Y-%m-%d')
+        # Retrieve top article per month
+        monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'relu_score')).reset_index(level=0, drop=True)
+        monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
+        monthly_art = monthly_art[['headline', 'document']]
 
+        # Join score and article
+        gen_index = daily_index.resample('M').mean()
+        gen_combine = pd.concat([gen_index, monthly_art], axis=1)
         return gen_index, gen_combine
 
 

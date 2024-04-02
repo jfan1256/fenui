@@ -13,8 +13,8 @@ class PlotPlotly:
 
     def _generate_plot(self):
         # Create a Plotly Express line graph
-        # fig = px.line(self.data, y='daily_cos_sim', title='Daily Cosine Similarity Over Time')
-        fig = px.line(self.data, y='daily_cos_sim')
+        print(self.data)
+        fig = px.line(self.data)
 
         # Update layout for font
         fig.update_layout(
@@ -32,7 +32,7 @@ class PlotPlotly:
                          linewidth=1,
                          linecolor='black',
                          type='category')
-        fig.update_yaxes(title_text='Cosine Similarity',
+        fig.update_yaxes(title_text='Attention',
                          title_font=dict(family='Helvetica', size=13),
                          showgrid=False,
                          showline=True,

@@ -18,7 +18,7 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am FenUI. To generate an index, please send a message that clearly specifies in any format of what label to use, the start and end date of your desired index, and also a transformation that is either relu, squared relu, arcsin, or sigmoid. Please note, the longer your desired time frame, the longer it will take to generate.
+                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, and p-value (if not, I will use default values 1984-01-01, 2021-12-31, and 0.01). Please note, the longer your desired time frame, the longer it will take to generate.
                     </p>
                     <p>
                         Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info and Happy generating!
@@ -118,7 +118,7 @@ function App() {
             setPlotDataDetails(parsedCombineData);
 
              // Simulate typing and then update the message with the plot
-            simulateTyping("Here is your generated index, click on any date to view the article that is most related toward your desired label! ",
+            simulateTyping("Here is your generated attention index, click on any date to view the article that is most related toward your desired label! ",
                 false,
                 () => {
                 setMessages(prevMessages => [
@@ -127,7 +127,7 @@ function App() {
                         type: "plot",
                         content: plotData,
                         isBot: true,
-                        text: "Here is your generated index, click on any date to view the article that is most related toward your desired label! ",
+                        text: "Here is your generated attention index, click on any date to view the article that is most related toward your desired label! ",
                     }
                 ]);
             }, () => setBotIsTyping(false));
@@ -153,23 +153,24 @@ function App() {
         setBotIsTyping(true);
 
         if (text === "About Us") {
-            res = "This service was developed by Jonathan Fan, Yinan Su, and Leland Bybee who are active researchers at Yale University and John Hopkins University. We developed this website in hopes " +
+            res = "This service was developed by Jonathan Fan, Yinan Su, and Leland Bybee who are active researchers at Yale University, John Hopkins University, and University of Chicago. We developed this website in hopes " +
                   "of allowing finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index is a widely-research index that accurately measures uncertainty in the market" +
-                  " with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate uncertainty indexes that are specifically catered " +
-                  "toward a user's interest. For example, our method can generate an uncertainty index that specifically measures artificial intelligence uncertainty over the past decade. We have also statistically proven, that our own " +
+                  " with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate attention indexes that are specifically catered " +
+                  "toward a user's interest. For example, our method can generate an attention index that specifically tracks Artificial Intelligence over the past decade. We have also statistically proven, that our own " +
                   " generated 'EPU' index is highly correlated to the actual EPU index, further validating our method. Check out our paper to read more about our methodology! With this tool, " +
-                  "you can generate any uncertainty index catered for you, allowing for multitudes of new ideas with regards to asset pricing research. " +
+                  "you can generate any attention index catered for your interest! " +
                   "If you have any questions regarding data, methodology, and purpose feel free to contact us at either jonathan.fan@yale.edu, ys@jhu.edu, or leland.bybee@yale.edu. We would love to chat!"
         } else if (text === "How to use?") {
-            res = "To generate an index, our method requires four inputs: label, start date, end date, and transform. The label can be anything, ranging from 'I like playing basketball' to " +
-                  "'Uncertainty in the stock price market'. As for start and end date, we currently only provide data generation from 1970-01-01 to 2020-01-01. Just specify your time frame within this range and make sure the start date " +
-                  " comes before end date. Lastly, the transform is the transformation applied on a daily interval. What does this exactly mean? Well, for each date we have an average of around 200 articles. " +
-                  " Instead of just averaging the cosine similarity score of these articles, you can apply different transformations such as a relu transformation to weight articles differently when calculating the daily index. That's it!";
+            res = "To generate an index, our method requires one parameter: query. The query can be anything, ranging from 'I like playing basketball' to " +
+                  "'Uncertainty in the stock price market'. Next there are three optional parameters to specify: start date, end date, and p-value. For start and end date, we currently only provide data generation from 1984-01-01 to 2021-12-31 (default values for start date and end date)." +
+                  " Please specify your time frame within this range and make sure the start date " +
+                  " comes before end date. Lastly, the p-value (default value is 0.01) determines the significance level used to calculate the threshold for our relu transformation applied on a daily interval (more info in our paper). The basis intuition for this transformation is this: for each date we have an average of around 200 articles. " +
+                  " Instead of just averaging the cosine similarity score of these articles, our percentile relu transformations only considers the most relevant articles - effectively removing any noise. That's it!";
         } else if (text === "How does it work?") {
-            res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1970 to 2020. Each day has around 200 articles. From here, we then " +
-                  "used OpenAI's ADA Model to generated an embeddings dataset. Now to actually generated the index, we retrieve the embeddings of a your input label and then calculate the cosine " +
+            res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1984 to 2021. Each day has around 200 articles. From here, we then " +
+                  "used a LLM to generated an embeddings dataset. Now to actually generated the index, we retrieve the embeddings of a your input label and then calculate the cosine " +
                   " similarity score of each article's embedding compared with the label embedding. From here, we then apply a transformation on each score to eliminate irrelevant articles and calculate the " +
-                  " average score per date. This leads us to a final daily timeseries of scores, which accurately represents the uncertainty index with regards to your inputted label. For more information on" +
+                  " average score per date. Lastly, we then aggregate the daily timeseries to our final monthly timeseries of scores, which accurately represents the attention index with regards to your inputted query. For more information on" +
                   " our methodology and it's validity, check out our paper!"
         }
 
