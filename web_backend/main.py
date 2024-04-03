@@ -99,6 +99,7 @@ def generate_plot():
     # Fetch Data from Milvus Database
     try:
         query_fetch = QueryFetch(label=query, start_date=start_date_str, end_date=end_date_str, prod=prod, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
+        query = query_fetch.query_fetch()
     except Exception as e:
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
