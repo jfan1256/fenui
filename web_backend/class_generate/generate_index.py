@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.preprocessing import MinMaxScaler
+
 class GenerateIndex:
     def __init__(self,
                  query=None,
@@ -71,6 +73,17 @@ class GenerateIndex:
         # Join score and article
         gen_index = daily_index.resample('M').mean()
         gen_combine = pd.concat([gen_index, monthly_art], axis=1)
+        gen_index.index = gen_index.index.strftime('%Y-%m-%d')
+        gen_combine.index = gen_combine.index.strftime('%Y-%m-%d')
+
+        # Min Max
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        data_to_scale = gen_index[['relu_score']]
+        scaled_data = scaler.fit_transform(data_to_scale)
+        gen_index[['relu_score']] = scaled_data
+
+        # Rename column
+        gen_index.columns = ['attention']
         return gen_index, gen_combine
 
 

@@ -1,6 +1,8 @@
 import re
 import traceback
 
+import pandas as pd
+
 import config
 import json
 import time
@@ -17,7 +19,7 @@ from class_expand.expand_query import ExpandQuery
 
 app = Flask(__name__)
 
-prod = True
+prod = False
 
 if prod == True:
     # Prod CORS (This is connecting to the frontend url)
@@ -100,22 +102,29 @@ def generate_plot():
     except Exception as e:
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
-    query = query_fetch.query_fetch()
+    print("-" * 60 + f"\nmilvus data: {query}")
 
     # Generate Index and Article index
     print("-" * 60 + f"\nGenerate Index")
     generate_index = GenerateIndex(query=query, p_vaL=p_val)
     gen_index, gen_combine = generate_index.generate_index()
+    print("-" * 60 + f"\ngen_index: {gen_index}")
+    print("-" * 60 + f"\ngen_combine: {gen_combine}")
 
     # Plot Index
     print("-" * 60 + f"\nPlot Index")
     plot_plotly = PlotPlotly(data=gen_index)
     plot_fig = plot_plotly.get_plot()
 
+    # Save expanded query into pandas dataframe
+    expand_query = pd.DataFrame([extracted_info])
+    print("-" * 60 + f"\nexpand_query: {expand_query}")
+
     return jsonify({
         'gen_plot': plot_fig,
         'gen_index': gen_index.to_csv(),
-        'gen_combine': gen_combine.to_csv()
+        'gen_combine': gen_combine.to_csv(),
+        'expand_query': expand_query.to_csv(index=False)
     })
 
 # Log Version

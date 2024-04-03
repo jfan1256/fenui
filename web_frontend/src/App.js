@@ -18,10 +18,10 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, and p-value (if not, I will use default values 1984-01-01, 2021-12-31, and 0.01). Please note, the longer your desired time frame, the longer it will take to generate.
+                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, and p-value. If not, I will use default values 1984-01-01, 2021-12-31, and 0.01. Please note, the longer your desired time frame, the longer it will take to generate.
                     </p>
                     <p>
-                        Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info and Happy generating!
+                        Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!
                     </p>
                 </div>,
                 isBot: true,
@@ -71,6 +71,7 @@ function App() {
 
     // Send Input to Backend and Handle Bot is Typing
     const [csvDataUrl, setCsvDataUrl] = useState(null);
+    const [queryDataUrl, setCsvQueryUrl] = useState(null);
     const [botIsTyping, setBotIsTyping] = useState(false);
     const handleSend = async () => {
         if (botIsTyping) {
@@ -92,14 +93,14 @@ function App() {
 
         try {
             // Call to Flask API Worked
-            // // Local
-            // const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
+            // Local
+            const response = await axios.post('http://localhost:5000/generate_plot', { "input_str": userInput });
 
             // // Prod (GCP)
             // const response = await axios.post('https://webbackend-yhzjtissga-ue.a.run.app/generate_plot', { "input_str": userInput });
 
-            // Prod (Ngrok)
-            const response = await axios.post("https://c4f3-128-255-234-12.ngrok-free.app/generate_plot", { "input_str": userInput });
+            // // Prod (Ngrok)
+            // const response = await axios.post("https://c4f3-128-255-234-12.ngrok-free.app/generate_plot", { "input_str": userInput });
 
             // Parse the plot JSON data
             const plotData = JSON.parse(response.data.gen_plot);
@@ -107,10 +108,17 @@ function App() {
             // Get the generated index data
             const indexCsvData = response.data.gen_index;
 
+            // Get the expanded query data
+            const expandQueryData = response.data.expand_query
+
             // Create a Blob from the CSV data and create an object URL for it
             const blob = new Blob([indexCsvData], { type: 'text/csv' });
             const dataUrl = window.URL.createObjectURL(blob);
             setCsvDataUrl(dataUrl);
+
+            const blob_query = new Blob([expandQueryData], { type: 'text/csv' });
+            const queryUrl = window.URL.createObjectURL(blob_query);
+            setCsvQueryUrl(queryUrl);
 
             // Retrieve generated combination data
             const combineCsvData = response.data.gen_combine;
@@ -168,8 +176,8 @@ function App() {
                   " Instead of just averaging the cosine similarity score of these articles, our percentile relu transformations only considers the most relevant articles - effectively removing any noise. That's it!";
         } else if (text === "How does it work?") {
             res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1984 to 2021. Each day has around 200 articles. From here, we then " +
-                  "used a LLM to generated an embeddings dataset. Now to actually generated the index, we retrieve the embeddings of a your input label and then calculate the cosine " +
-                  " similarity score of each article's embedding compared with the label embedding. From here, we then apply a transformation on each score to eliminate irrelevant articles and calculate the " +
+                  "used a LLM to generated an embeddings dataset. Now to actually generated the index, we first expand you query using ChatGPT to capture all points of you query. We then retrieve the embeddings of this expanded query and calculate the cosine " +
+                  " similarity score of each article's embedding compared with the label embedding. From here, we then apply a p-value relu transformation on each score to eliminate irrelevant articles and calculate the " +
                   " average score per date. Lastly, we then aggregate the daily timeseries to our final monthly timeseries of scores, which accurately represents the attention index with regards to your inputted query. For more information on" +
                   " our methodology and it's validity, check out our paper!"
         }
@@ -291,8 +299,13 @@ function App() {
                                             }}
                                         />
                                         {csvDataUrl && (
-                                            <a href={csvDataUrl} download="gen_index.csv" className="download-csv-link" style={{ color: 'rgb(120, 180, 240)', textDecoration: 'none', display: 'inline-block', marginTop: '1rem' }}>
-                                                Download CSV
+                                            <a href={csvDataUrl} download="attention_index.csv" className="download-csv-link" style={{ color: 'rgb(120, 180, 240)', textDecoration: 'none', display: 'inline-block', marginTop: '1rem' }}>
+                                                Download Attention Index
+                                            </a>
+                                        )}
+                                        {queryDataUrl && (
+                                            <a href={queryDataUrl} download="query_info.csv" className="download-csv-link" style={{ color: 'rgb(120, 180, 240)', textDecoration: 'none', display: 'inline-block', marginTop: '1rem' }}>
+                                                Download Query Info
                                             </a>
                                         )}
                                     </div>

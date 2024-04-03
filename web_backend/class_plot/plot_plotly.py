@@ -13,7 +13,6 @@ class PlotPlotly:
 
     def _generate_plot(self):
         # Create a Plotly Express line graph
-        print(self.data)
         fig = px.line(self.data)
 
         # Update layout for font
@@ -22,22 +21,28 @@ class PlotPlotly:
             font=dict(family='Helvetica', size=10),
             plot_bgcolor='white',
             paper_bgcolor='white',
+            showlegend=False,
         )
 
         # Update axis titles with bold font
         fig.update_xaxes(title_text='Date',
                          title_font=dict(family='Helvetica', size=13),
+                         title_standoff=20,
                          showgrid=False,
                          showline=True,
                          linewidth=1,
                          linecolor='black',
-                         type='category')
+                         type='category',
+                         tickangle=45,
+                         tickfont=dict(size=10))
         fig.update_yaxes(title_text='Attention',
                          title_font=dict(family='Helvetica', size=13),
+                         title_standoff=20,
                          showgrid=False,
                          showline=True,
                          linewidth=1,
-                         linecolor='black')
+                         linecolor='black',
+                         tickfont=dict(size=10))
 
         return fig
 
