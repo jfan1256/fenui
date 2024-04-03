@@ -330,7 +330,7 @@ function App() {
                                 <img src={sendBtn} alt="send"/>
                             </button>
                         </div>
-                        <p>FenUI is more prone to mistakes if a label, start date, end date, and transform is not clearly specified.</p>
+                        <p>FenUI is more prone to mistakes if input is ambiguous when specifying query and optional parameters.</p>
                     </div>
                     {showPopup && selectedData && (
                         <div className="popup">
