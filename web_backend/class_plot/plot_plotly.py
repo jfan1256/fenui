@@ -24,7 +24,7 @@ class PlotPlotly:
             showlegend=False,
         )
 
-        # Update axis titles with bold font
+        # Update axis
         fig.update_xaxes(title_text='Date',
                          title_font=dict(family='Helvetica', size=13),
                          title_standoff=20,

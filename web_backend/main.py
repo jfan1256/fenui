@@ -103,7 +103,6 @@ def generate_plot():
     except Exception as e:
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
-    print("-" * 60 + f"\nmilvus data: {query}")
 
     # Generate Index and Article index
     print("-" * 60 + f"\nGenerate Index")
