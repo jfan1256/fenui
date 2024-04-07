@@ -38,6 +38,7 @@ class QueryFetch:
 
         # Establish Milvus connection (Local or Prod)
         if self.prod:
+            print("-" * 60 + f"\nConnecting to prod Milvus server")
             MILVUS_HOST = self.ngrok_host
             MILVUS_PORT = self.ngrok_port
             max_retries = 5
@@ -50,12 +51,11 @@ class QueryFetch:
                     break
                 except Exception as e:
                     attempts += 1
-            print("-" * 60 + f"\nConnected to prod Milvus server")
         else:
+            print("-" * 60 + f"\nConnecting to local Milvus server")
             MILVUS_HOST = 'localhost'
             MILVUS_PORT = '19530'
             connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
-            print("-" * 60 + f"\nConnected to local Milvus server")
 
         # Load collection
         collection = Collection("wsj_emb")
