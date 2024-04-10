@@ -1,0 +1,10 @@
+Query: Economic Recession
+
+Expanded Query: global economic downturn indicators. effects of recession on unemployment rates. government responses to economic crises. historical analysis of economic recessions. correlation between stock market crashes and recessions. impact of recession on small businesses. economic recession and its effect on global trade. monetary policies to combat recession. fiscal stimulus measures for economic recovery. consumer confidence during economic downturns. recession-proof industries and sectors. leading and lagging indicators of economic recession. comparative analysis of recessions in the 21st century. role of central banks during economic downturns. effects of recession on housing markets. unemployment trends during economic recessions. economic recession and inflation dynamics. impact of global recessions on emerging markets. strategies for financial survival in a recession. long-term consequences of economic recessions. analysis of debt levels during recession periods. recession and its impact on public health. social and psychological effects of economic downturns. recession-driven changes in consumer behavior. forecasting the next economic recession. relationship between oil prices and economic recessions. economic recessions and the technology sector. government debt accumulation during recessions. economic recession and environmental policy. recovery patterns from past economic recessions. impact of recession on education and workforce development. recessions and their effects on income inequality. cross-country analysis of recession impacts. early warning systems for economic recessions. case studies of successful recovery from recession. economic theories explaining the causes of recessions. role of international organizations in mitigating recessions. impact of recessions on mental health services demand. recession and changes in political landscapes. strategies for investment during economic downturns. analysis of consumer debt during economic recessions.
+
+P-Value: 0.01
+
+Threshold: 0.21144362886391838
+
+Pearson Correlation: 0.14397242705393418
+

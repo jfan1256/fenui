@@ -1,5 +1,0 @@
-Prompt: Generate an index with label ESG from January 1st, 1984, to December 31st, 2021.
-
-Label: ESG
-
-Pearson: 0

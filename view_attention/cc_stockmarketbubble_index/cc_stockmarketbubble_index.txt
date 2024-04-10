@@ -1,0 +1,10 @@
+Query: Stock Market Bubble
+
+Expanded Query: Definition of a stock market bubble. Historical stock market bubbles. Causes of stock market bubbles. Impact of stock market bubbles on the economy. Signs of an impending stock market bubble. Comparison between stock market bubbles and economic recessions. Government response to stock market bubbles. Stock market bubble burst consequences. Preventing stock market bubbles. Investor behavior during stock market bubbles. Role of media in stock market bubbles. Stock market bubble vs. sustainable growth. Technological sector stock market bubbles. Real estate sector influence on stock market bubbles. Global stock market bubbles. Case studies of major stock market bubbles. Psychology behind stock market bubbles. Financial regulation and stock market bubbles. Early warning systems for stock market bubbles. Theoretical models explaining stock market bubbles. Stock market bubble risk assessment. Impact of stock market bubbles on small investors. Relationship between interest rates and stock market bubbles. Influence of global events on stock market bubbles. Stock market bubbles and market corrections. The future of stock market bubbles. Stock market bubbles in emerging markets. Historical outcomes of stock market bubble bursts. The role of central banks in managing stock market bubbles. Quantitative analysis of stock market bubbles.
+
+P-Value: 0.01
+
+Threshold: 0.22913475007852505
+
+Pearson Correlation: 0
+

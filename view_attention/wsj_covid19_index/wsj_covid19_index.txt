@@ -1,0 +1,10 @@
+Query: COVID-19
+
+Expanded Query: Coronavirus pandemic updates. COVID-19 vaccine development and distribution. Impact of COVID-19 on global economy. Social distancing measures against COVID-19. COVID-19 symptoms and treatment. COVID-19 testing and diagnosis. Travel restrictions due to COVID-19. COVID-19 and mental health issues. Remote work and education during COVID-19. Government responses to COVID-19. COVID-19 outbreaks and hotspots. Healthcare systems coping with COVID-19. COVID-19 misinformation and fake news. COVID-19 and the impact on sports events. Technological innovations in response to COVID-19. COVID-19 and its effects on underprivileged communities. Post-COVID-19 economic recovery plans. COVID-19 vaccine hesitancy and public health. Long-term effects of COVID-19 on survivors. International cooperation in fighting COVID-19. COVID-19 mutations and new variants. Face masks and personal protective equipment against COVID-19. Impact of COVID-19 on the environment. COVID-19 and the race for herd immunity. Ethical considerations in COVID-19 vaccine distribution. Impact of COVID-19 on small businesses. Quarantine experiences and stories during COVID-19. Frontline workers and heroes of the COVID-19 pandemic. COVID-19 and global supply chain disruptions. Lessons learned from the COVID-19 pandemic. Comparison of COVID-19 with previous pandemics. COVID-19 conspiracy theories and their debunking. Impact of COVID-19 on the entertainment industry. Telehealth and online medical consultations during COVID-19. COVID-19 and changes in consumer behavior. Reopening strategies post-COVID-19 lockdowns. COVID-19 and its effect on religious practices. Scientific research findings on COVID-19. Global solidarity and humanitarian aid during COVID-19. COVID-19 and the future of work.
+
+P-Value: 0.01
+
+Threshold: 0.17616072471145428
+
+Pearson Correlation: 0
+

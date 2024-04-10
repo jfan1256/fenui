@@ -1,0 +1,10 @@
+Query: ESG
+
+Expanded Query: Environmental, Social, and Governance principles. Sustainable investing strategies. Corporate social responsibility in business practices. Impact of climate change on investment decisions. Socially responsible investment trends. Governance and ethics in corporate management. Environmental sustainability in corporate operations. Financial performance of ESG-compliant companies. Regulatory compliance with ESG standards. Stakeholder activism in ESG issues. Green bonds and sustainable finance. Diversity and inclusion in the workplace. Renewable energy investments. Carbon footprint reduction strategies for businesses. Supply chain sustainability and ethical sourcing. Corporate philanthropy and community engagement. Employee welfare and labor rights. Transparency and accountability in corporate reporting. Impact investing and ESG-focused funds. Shareholder proposals on environmental and social issues. Corporate governance reforms and best practices. ESG risk assessment and management. Sustainability reporting standards and frameworks. Climate risk disclosure and financial implications. Energy efficiency initiatives in the corporate sector. Water conservation and management in business operations. Anti-corruption policies and ethical business conduct. Board diversity and leadership in ESG implementation. Human rights compliance in global supply chains. Investor engagement on ESG performance.
+
+P-Value: 0.01
+
+Threshold: 0.19737932267589822
+
+Pearson Correlation: 0
+

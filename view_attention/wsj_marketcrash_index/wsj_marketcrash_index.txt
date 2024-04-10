@@ -1,0 +1,10 @@
+Query: Market Crash
+
+Expanded Query: stock market crash causes. financial market downturn. economic impact of stock market crash. historical market crashes analysis. stock market bubble burst. global market crash effects. stock market crash recovery strategies. investor reactions to market crash. government response to financial crisis. market crash prediction models. comparative analysis of market crashes. stock market volatility and crash. effects of market crash on small businesses. long-term consequences of market crashes. psychological impact of market downturns on investors. role of trading algorithms in market crashes. market liquidity issues during crash. impact of market crash on pension funds. stock market crash and unemployment rates correlation. media coverage of stock market crashes. stock market crash risk management. historical stock market crashes and recoveries. analysis of pre-market crash indicators. impact of global events on market crashes. stock market crash and inflation. relationship between interest rates and market crashes. effect of market crashes on housing market. commodity market performance during stock market crash. stock market crash and consumer confidence. emerging markets vulnerability to market crashes. cryptocurrency market crash analysis. sectoral impacts of stock market crashes. stock market crash and corporate bankruptcies. impact of political instability on market crashes. international markets correlation during crash. stock market crash insurance products. lessons learned from past market crashes. impact of market crashes on global trade. behavioral finance insights on market crashes. technological advancements and stock market crash prediction.
+
+P-Value: 0.01
+
+Threshold: 0.2108991845157441
+
+Pearson Correlation: 0
+

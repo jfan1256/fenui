@@ -1,0 +1,10 @@
+Query: Inflation
+
+Expanded Query: What causes inflation in an economy?. How does inflation affect consumer purchasing power?. Impact of inflation on interest rates. Comparison between inflation and deflation. Strategies to control inflation. Historical inflation rates and their economic impact. Inflation trends in emerging markets. The role of central banks in managing inflation. Effects of inflation on savings and investments. Hyperinflation and its consequences on society. Inflation targeting as a monetary policy. Relationship between inflation and unemployment. Inflation-adjusted returns on investments. Cost-push vs. demand-pull inflation. Global inflation rates comparison. Inflation and its impact on the housing market. How inflation affects currency value. Wage inflation and its effects on the economy. Inflation measurement tools and indices. The psychological effects of inflation on consumers. Inflation and income inequality. Government debt and its relation to inflation. Inflation hedging strategies for investors. Inflation predictions for the next decade. The impact of supply chain disruptions on inflation. Inflation in the context of economic recessions. Stagflation: Inflation combined with stagnant economic growth. The effect of oil prices on inflation. Inflation and the cost of living adjustments. Comparative analysis of inflation rates among different countries. Quantitative easing and its effects on inflation. Food inflation and its impact on global hunger and poverty. The relationship between inflation and consumer confidence. Inflation's influence on government policy making. Technological advancements and their effect on inflation.
+
+P-Value: 0.01
+
+Threshold: 0.20190663135074027
+
+Pearson Correlation: -0.05453149528842846
+

@@ -1,0 +1,10 @@
+Query: Systemic Financial Stress
+
+Expanded Query: global financial crisis indicators. system-wide banking failures. economic downturn due to financial instability. impact of systemic financial stress on global markets. causes of systemic financial crises. government responses to systemic financial stress. systemic financial stress and its effects on small businesses. measuring systemic financial stress. relationship between systemic financial stress and unemployment rates. systemic financial stress and inflation. early warning signs of systemic financial stress. role of central banks in preventing systemic financial stress. effects of systemic financial stress on international trade. systemic financial stress and public debt. policy tools for managing systemic financial stress. historical examples of systemic financial stress. systemic financial stress and its impact on consumer confidence. cross-border impacts of systemic financial stress. systemic financial stress and the housing market. liquidity crises as a form of systemic financial stress. credit crunch and systemic financial stress. systemic financial stress and stock market crashes. regulatory failures and systemic financial stress. systemic financial stress and corporate bankruptcies. interconnectedness of banks and systemic financial stress. systemic financial stress and monetary policy. systemic financial stress and fiscal policy. stress testing for systemic financial stability. systemic financial stress and wealth inequality. contagion effects of systemic financial stress.
+
+P-Value: 0.01
+
+Threshold: 0.2078848929199003
+
+Pearson Correlation: 0.11051633396538656
+

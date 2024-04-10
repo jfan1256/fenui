@@ -31,7 +31,7 @@ class GenEmb:
         '''
         query (str): User input (should contain a label, start date and end date)
         expand(bool): Expand query or not
-        info (bool): Extract info or not (i.e., info=False if query='Systemic Financial Distress')
+        info (bool): Extract info or not (i.e., info=info if query='Systemic Financial Distress')
         type (str): Method to generate an index (either 'embedding', 'tfidf', 'count')
         vector_data (pd.DataFrame): Pandas dataframe that stores the article vectors
         vector_column (str): Column name for the vector column
@@ -56,23 +56,6 @@ class GenEmb:
 
         api_key = json.load(open(get_config() / 'api.json'))['openai_api_key']
         self.client = OpenAI(api_key=api_key)
-
-        # Set limit for number of articles per date
-        if self.vector_data is not None and not self.vector_data.empty:
-            limit = 30
-            count = self.vector_data.groupby(self.vector_data.index)[self.vector_data.columns[0]].count()
-            valid_date = count >= limit
-            self.vector_data = self.vector_data[self.vector_data.index.isin(count[valid_date].index)]
-        if self.preprocess_data is not None and not self.preprocess_data.empty:
-            limit = 30
-            count = self.preprocess_data.groupby(self.preprocess_data.index)[self.preprocess_data.columns[0]].count()
-            valid_date = count >= limit
-            self.preprocess_data = self.preprocess_data[self.preprocess_data.index.isin(count[valid_date].index)]
-        if self.article_data is not None and not self.article_data.empty:
-            limit = 30
-            count = self.article_data.groupby(self.article_data.index)[self.article_data.columns[0]].count()
-            valid_date = count >= limit
-            self.article_data = self.article_data[self.article_data.index.isin(count[valid_date].index)]
 
     # Extract info
     def _extract_info(self):
@@ -133,6 +116,18 @@ class GenEmb:
         text = self.query['expanded_query'].replace("\n", " ")
         return self.client.embeddings.create(input=[text], model="text-embedding-3-small").data[0].embedding
 
+    # Standardize
+    @staticmethod
+    def _standardize(index):
+        # Min-max scale all indexes to 0 and 1
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        columns_to_scale = ['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']
+        # Apply scaling for each column individually
+        for column in columns_to_scale:
+            data_to_scale = index[column].values.reshape(-1, 1)
+            index[column] = scaler.fit_transform(data_to_scale)
+        return index
+
     # Compare official index with generated index
     @staticmethod
     def _compare_index(index, file_path):
@@ -146,9 +141,11 @@ class GenEmb:
         index = index.join(official_index).dropna()
         # Min-max scale all indexes to 0 and 1
         scaler = MinMaxScaler(feature_range=(0, 1))
-        data_to_scale = index[['relu_score', 'norm_score', 'official']]
-        scaled_data = scaler.fit_transform(data_to_scale)
-        index[['relu_score', 'norm_score', 'official']] = scaled_data
+        columns_to_scale = ['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score', 'official']
+        # Apply scaling for each column individually
+        for column in columns_to_scale:
+            data_to_scale = index[column].values.reshape(-1, 1)
+            index[column] = scaler.fit_transform(data_to_scale)
         # Calculate pearson correlation
         print("-" * 60)
         pearson_corr = index['relu_score'].corr(index['official'], method='pearson')
@@ -168,9 +165,11 @@ class GenEmb:
         index = index.join(official_index)
         # Min-max scale all indexes to 0 and 1
         scaler = MinMaxScaler(feature_range=(0, 1))
-        data_to_scale = index[['relu_score', 'norm_score', 'official']]
-        scaled_data = scaler.fit_transform(data_to_scale)
-        index[['relu_score', 'norm_score', 'official']] = scaled_data
+        columns_to_scale = ['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score', 'official']
+        # Apply scaling for each column individually
+        for column in columns_to_scale:
+            data_to_scale = index[column].values.reshape(-1, 1)
+            index[column] = scaler.fit_transform(data_to_scale)
         return index
 
     # Save index, query, etc. to folder
@@ -190,7 +189,7 @@ class GenEmb:
 
         # Get plot
         plt.figure(figsize=(10, 5))
-        colors = ['blue', 'red', 'cyan', 'orange', 'green', 'purple', 'magenta', 'yellow', 'black', 'grey']
+        colors = ['blue', 'red', 'orange', 'purple', 'cyan', 'green', 'magenta', 'yellow', 'black', 'grey']
 
         # Adjust thickness of axis
         ax = plt.gca()
@@ -212,8 +211,18 @@ class GenEmb:
         plt.grid(False)
 
         # Save figure
-        plt.savefig(f'../../plot/{output}/{output}.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'../../view_attention/{output}/{output}.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
+
+        # Get plot
+        plt.figure(figsize=(10, 5))
+        colors = ['blue', 'red', 'orange', 'purple', 'cyan', 'green', 'magenta', 'yellow', 'black', 'grey']
+
+        # Adjust thickness of axis
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(1.3)
 
         # Plot each line for index_research (Plot to see threshold index vs. no threshold index)
         for i, (column, name) in enumerate(zip(index_research.columns, index_name_research)):
@@ -229,7 +238,7 @@ class GenEmb:
         plt.grid(False)
 
         # Save figure
-        plt.savefig(f'../../plot/{output}/compare.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'../../view_attention/{output}/compare.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
     # Generate Embedding Index
@@ -270,12 +279,17 @@ class GenEmb:
         # Convert vector_data to a matrix
         vector_matrix = np.stack(self.vector_data[self.vector_column].values)
 
+        # Aggregate embeddings to a daily timeframe
+        daily_aggregated = self.vector_data.groupby(self.vector_data.index.date)[self.vector_column].agg(lambda x: np.mean(np.stack(x), axis=0))
+        vector_agg_matrix = np.stack(daily_aggregated.values)
+
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # -----------------------------------------------------------------------COMPUTE COS SIM------------------------------------------------------------------
         print("-" * 60 + "\nComputing cosine similarity with label embedding...")
         cos_sim = cosine_similarity(label_emb, vector_matrix)
         self.vector_data['score'] = cos_sim[0]
 
+        cos_sim_agg = cosine_similarity(label_emb, vector_agg_matrix)
         # --------------------------------------------------------------------------------------------------------------------------------------------------------
         # ---------------------------------------------------------------------APPLY TRANSFORMATION---------------------------------------------------------------
         # Get threshold p_val
@@ -306,6 +320,16 @@ class GenEmb:
         norm_score = norm_score.groupby('date').mean()
         norm_score.columns = ['norm_score']
 
+        # Add embedding agg daily
+        norm_score['agg_norm_score'] = cos_sim_agg[0]
+        
+        # Apply relu to daily timeframe
+        scores = np.array(norm_score['norm_score'])
+        percentile = 100 * (1 - 0.25)
+        threshold = np.percentile(scores, percentile)
+        relu_norm_score = np.maximum(0, norm_score['norm_score'] - threshold)
+        relu_norm_score = relu_norm_score.to_frame('relu_norm_score')
+
         # Aggregate to monthly timeframe or daily timeframe
         if self.interval == "M":
             # Retrieve top article per month
@@ -315,13 +339,14 @@ class GenEmb:
             # Join score and article
             relu_score = relu_score.resample('M').mean()
             norm_score = norm_score.resample('M').mean()
-            relu_score = pd.concat([relu_score, norm_score, monthly_art[['headline', 'body_txt']]], axis=1)
+            relu_norm_score = relu_norm_score.resample('M').mean()
+            relu_score = pd.concat([relu_score, relu_norm_score, norm_score, monthly_art[['headline', 'body_txt']]], axis=1)
 
         elif self.interval == "D":
             daily_art = art.groupby(art.index.date).first()
             daily_art.index = pd.to_datetime(daily_art.index)
             # Join score and article
-            relu_score = pd.concat([relu_score, norm_score, daily_art[['headline', 'body_txt']]], axis=1)
+            relu_score = pd.concat([relu_score, relu_norm_score, norm_score, daily_art[['headline', 'body_txt']]], axis=1)
 
         return relu_score, self.query['expanded_query'], threshold
 
@@ -329,140 +354,179 @@ class GenEmb:
 # --------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------GET PLOTS---------------------------------------------------------------------
 if __name__ == "__main__":
-    # # Load openai embeddings
-    # wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_openai_*')
-    # wsj_openai = wsj_openai.concat_files(10)
-
-    # # Load articles
-    # wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    # wsj_art = wsj_art.concat_files(1)
-
-    # # Equal data
-    # wsj_openai = wsj_openai.head(10000)
-    # wsj_art = wsj_art.head(10000)
-
-    # Load openai embeddings
-    wsj_openai = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_textemb3small_*')
-    wsj_openai = wsj_openai.concat_files()
-
-    # Load articles
-    wsj_art = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-    wsj_art = wsj_art.concat_files()
-
+    # --------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------PARAMS-----------------------------------------------------------------------
     # Params
+    type = 'cc'
+    expand = True
+    info = False
     vector_column = 'ada_embedding'
     interval = 'M'
     p_val = 0.01
+    
+    # --------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------WSJ-----------------------------------------------------------------------
+    if type == 'wsj':
+        # Load openai embeddings
+        vector_data = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_textemb3small_*')
+        vector_data = vector_data.concat_files()
+    
+        # Load articles
+        article_data = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
+        article_data = article_data.concat_files()
 
-    # # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # print("-"*120)
-    # # query = 'Generate an index with label ESG from January 1st, 1984, to December 31st, 2021.'
-    # # generate = GenEmb(query=query, expand=True, info=True, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # # index, expanded_query, threshold = generate.generate_emb()
-    # # index = generate._join_index(index=index, file_path='esg_google_trend.parquet.brotli')
-    # # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed', 'Non-Transformed'], output='esg_index')
+        # Set limit for number of articles per date
+        limit = 30
+        count = vector_data.groupby(vector_data.index)[vector_data.columns[0]].count()
+        valid_date = count >= limit
+        vector_data = vector_data[vector_data.index.isin(count[valid_date].index)]
+        count = article_data.groupby(article_data.index)[article_data.columns[0]].count()
+        valid_date = count >= limit
+        article_data = article_data[article_data.index.isin(count[valid_date].index)]
 
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'ESG'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._join_index(index=index, file_path='esg_google_trend.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed', 'Non-Transformed'], output='esg_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'US Economic Policy Uncertainty'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, file_path='epu.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['US EPU', 'US EPU (Baker et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='usepu_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Inflation'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, file_path='ir.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Inflation', '5-Year Breakeven Inflation Rate (FRED)'], index_name_research=['Transformed', 'Non-Transformed'], output='inflation_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Systemic Financial Stress'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, file_path='fsi.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Financial Stress', 'Financial Stress (Baker et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='fsi_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Economic Recession'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, file_path='recession.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Economic Recession', 'Economic Recession (Bybee et al.)'], index_name_research=['Transformed', 'Non-Transformed'], output='economicrecession_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Market Crash'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Market Crash'], index_name_research=['Transformed', 'Non-Transformed'], output='marketcrash_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Stock Market Bubble'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Stock Market Bubble'], index_name_research=['Transformed', 'Non-Transformed'], output='stockmarketbubble_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'US-China Trade War'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['US-China Trade War'], index_name_research=['Transformed', 'Non-Transformed'], output='uschinatradewar_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Artificial Intelligence'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Artificial Intelligence'], index_name_research=['Transformed', 'Non-Transformed'], output='ai_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Blockchain'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['Blockchain'], index_name_research=['Transformed', 'Non-Transformed'], output='blockchain_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'COVID-19'
-    # generate = GenEmb(query=query, expand=True, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'norm_score']], index_name_paper=['COVID-19'], index_name_research=['Transformed', 'Non-Transformed'], output='covid19_index')
+    # --------------------------------------------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------CC-----------------------------------------------------------------------
+    elif type == 'cc':
+        # Load CC openai embeddings
+        vector_data = Data(folder_path=get_format_data() / 'openai', file_pattern='cc_emb_textemb3small_*')
+        vector_data = vector_data.concat_files()
+    
+        # Load CC articles
+        article_data = Data(folder_path=get_format_data() / 'token', file_pattern='cc_tokens_*')
+        article_data = article_data.concat_files()
+    
+        # Daily Multiple CC Metadata
+        mdata = Data(folder_path=get_data() / 'cc_multiple', file_pattern='*_mdata.pq')
+        mdata = mdata.concat_files()
+    
+        # Create date index
+        mdata['date'] = pd.to_datetime(mdata['startDate'], format='%d-%b-%y %I:%M%p %Z')
+        mdata['date'] = mdata['date'].dt.date
+        mdata['date'] = pd.to_datetime(mdata['date'])
+        mdata = mdata.set_index('fid')
+    
+        # Set index for CC embeddings
+        vector_data.index = article_data['fid']
+        vector_data = vector_data.join(mdata)
+        vector_data = vector_data.reset_index().set_index('date').sort_index()
+        vector_data = vector_data[['ada_embedding']]
+        vector_data = vector_data.loc[~vector_data.ada_embedding.isnull()]
+    
+        # Set index for CC articles
+        article_data = article_data.set_index('fid')
+        article_data = article_data.join(mdata)
+        article_data = article_data.rename(columns={'Headline': 'headline'})
+        article_data = article_data.reset_index().set_index('date').sort_index()
+        article_data = article_data.loc[~((article_data.index == '2006-10-18') & (article_data.fid == '1391246') & (article_data.content_type == 'Presentation'))]
+        article_data = article_data[['headline', 'body_txt']]
+
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     print("-"*120)
-    language = [('English', 'Inflation'), ('Chinese', '通货膨胀'), ('Russian', 'инфляция'), ('Spanish', 'inflación'), ('French', "d'inflation"), ('Arabic', 'زِيادة في الأَسْعار')]
-    for i, (lan, query) in enumerate(language):
-        generate = GenEmb(query=query, expand=False, info=False, vector_data=wsj_openai, vector_column=vector_column, article_data=wsj_art, interval=interval, p_val=p_val)
-        index, expanded_query, threshold = generate.generate_emb()
-        if lan == 'English':
-            keep = index
-            continue
-        print(f"US and {lan} Correlation: {keep['relu_score'].corr(index['relu_score'])}")
+    query = 'ESG'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._join_index(index=index, file_path='esg_google_trend.parquet.brotli')
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_esg_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'US Economic Policy Uncertainty'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index, pearson_corr = generate._compare_index(index=index, file_path='epu.parquet.brotli')
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['US EPU', 'US EPU (Baker et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_usepu_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'Inflation'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index, pearson_corr = generate._compare_index(index=index, file_path='ir.parquet.brotli')
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Inflation', '5-Year Breakeven Inflation Rate (FRED)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_inflation_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-" * 120)
+    query = 'Systemic Financial Stress'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index, pearson_corr = generate._compare_index(index=index, file_path='fsi.parquet.brotli')
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Financial Stress', 'Financial Stress (Baker et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_fsi_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'Economic Recession'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index, pearson_corr = generate._compare_index(index=index, file_path='recession.parquet.brotli')
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Economic Recession', 'Economic Recession (Bybee et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_economicrecession_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-" * 120)
+    query = 'Market Crash'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Market Crash'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_marketcrash_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-" * 120)
+    query = 'Stock Market Bubble'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Stock Market Bubble'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_stockmarketbubble_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'US-China Trade War'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['US-China Trade War'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_uschinatradewar_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'Artificial Intelligence'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Artificial Intelligence'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_ai_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'Blockchain'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Blockchain'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_blockchain_index')
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    print("-"*120)
+    query = 'COVID-19'
+    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    index, expanded_query, threshold = generate.generate_emb()
+    index = generate._standardize(index)
+    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['COVID-19'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_covid19_index')
+
+    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # print("-"*120)
+    # language = [('English', 'Inflation'), ('Chinese', '通货膨胀'), ('Russian', 'инфляция'), ('Spanish', 'inflación'), ('French', "d'inflation"), ('Arabic', 'زِيادة في الأَسْعار')]
+    # for i, (lan, query) in enumerate(language):
+    #     generate = GenEmb(query=query, expand=False, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
+    #     index, expanded_query, threshold = generate.generate_emb()
+    #     if lan == 'English':
+    #         keep = index
+    #         continue
+    #     print(f"US and {lan} Correlation: {keep['relu_score'].corr(index['relu_score'])}")

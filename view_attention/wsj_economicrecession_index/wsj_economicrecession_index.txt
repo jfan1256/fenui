@@ -1,0 +1,10 @@
+Query: Economic Recession
+
+Expanded Query: global economic downturn impacts. causes of financial crisis. effects of recession on employment. stock market crash analysis. government response to economic slowdown. consumer confidence during recession. business bankruptcy rates increase. monetary policy during economic recession. fiscal stimulus for economic recovery. unemployment trends in financial crises. inflation rates during economic downturn. housing market collapse and recession. global trade during economic contractions. impact of recession on small businesses. economic recession and public debt. recession-proof industries performance. recovery strategies from economic slump. comparing recessions across history. economic indicators predicting recession. role of central banks in recessions. impact of recession on innovation. consumer spending behavior in downturn. effects of recession on poverty levels. corporate debt crisis and economic recession. long-term effects of economic recessions. recession impact on education and training. government debt crisis and recession. recession and its effects on healthcare. energy prices and economic downturn. international aid during economic crises. psychological effects of economic recession. recession and changes in consumer loyalty. impact of technology during economic slowdown. effects of recession on the environment. political consequences of economic recessions. forecasting the next economic recession. comparative analysis of global recessions. recession impact on infrastructure development. role of innovation in economic recovery. urban vs. rural impact of economic recession.
+
+P-Value: 0.01
+
+Threshold: 0.21382091243954812
+
+Pearson Correlation: 0.8011407381773544
+
