@@ -87,60 +87,85 @@ class GenerateIndex:
         gen_index.columns = ['attention']
         return gen_index, gen_combine
 
-    # Generate attention index for parquet files
+    # # Generate attention index for parquet files
+    # def generate_index_pq(self):
+    #     # Get query embedding
+    #     print("Get query embedding")
+    #     query_emb = self._get_openai_emb(self.query)
+    #     query_emb = np.array(query_emb).reshape(1, -1)
+    #
+    #     # Convert vector_data to a matrix
+    #     vector_matrix = np.stack(self.data['ada_embedding'].values)
+    #
+    #     # Calculate score
+    #     print("Calculate Score")
+    #     score = cosine_similarity(query_emb, vector_matrix)[0]
+    #
+    #     # Create dataframe
+    #     data = self.data[['headline', 'body_txt']]
+    #     data['cos_sim'] = score
+    #     data = data.rename(columns={'body_txt':'document'})
+    #
+    #     # Apply transformation (p-value percentile threshold)
+    #     scores = np.array(data['cos_sim'])
+    #     percentile = 100 * (1 - self.p_val)
+    #     threshold = np.percentile(scores, percentile)
+    #     data['relu_score'] = np.maximum(0, data['cos_sim'] - threshold)
+    #
+    #     # Create daily uncertainty index
+    #     print("Aggregate Daily")
+    #     daily_index = self._agg_daily(data=data, labels='relu_score', name='relu_score')
+    #
+    #     # Setup article index
+    #     art = data[['relu_score', 'headline', 'document']]
+    #     art = art.sort_values(by='relu_score', ascending=False)
+    #
+    #     # Retrieve top article per month
+    #     print("Aggregate Monthly")
+    #     monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'relu_score')).reset_index(level=0, drop=True)
+    #     monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
+    #     monthly_art = monthly_art[['headline', 'document']]
+    #
+    #     # Join score and article
+    #     gen_index = daily_index.resample('M').mean()
+    #     gen_combine = pd.concat([gen_index, monthly_art], axis=1)
+    #     gen_index.index = gen_index.index.strftime('%Y-%m-%d')
+    #     gen_combine.index = gen_combine.index.strftime('%Y-%m-%d')
+    #
+    #     # Min Max
+    #     print("Min-Max Scale")
+    #     scaler = MinMaxScaler(feature_range=(0, 1))
+    #     data_to_scale = gen_index[['relu_score']]
+    #     scaled_data = scaler.fit_transform(data_to_scale)
+    #     gen_index[['relu_score']] = scaled_data
+    #
+    #     # Rename column
+    #     gen_index.columns = ['attention']
+    #     return gen_index, gen_combine
     def generate_index_pq(self):
-        # Get query embedding
         print("Get query embedding")
-        query_emb = self._get_openai_emb(self.query)
-        query_emb = np.array(query_emb).reshape(1, -1)
+        query_emb = self._get_openai_emb(self.query).reshape(1, -1)
 
-        # Convert vector_data to a matrix
-        vector_matrix = np.stack(self.data['ada_embedding'].values)
-
-        # Calculate score
         print("Calculate Score")
-        score = cosine_similarity(query_emb, vector_matrix)[0]
+        vector_matrix = np.stack(self.data['ada_embedding'].values)
+        scores = cosine_similarity(query_emb, vector_matrix)[0]
 
-        # Create dataframe
-        data = self.data[['headline', 'body_txt']]
-        data['cos_sim'] = score
-        data = data.rename(columns={'body_txt':'document'})
+        self.data['cos_sim'] = scores
+        threshold = np.percentile(scores, 100 * (1 - self.p_val))
+        self.data['relu_score'] = np.maximum(0, self.data['cos_sim'] - threshold)
 
-        # Apply transformation (p-value percentile threshold)
-        scores = np.array(data['cos_sim'])
-        percentile = 100 * (1 - self.p_val)
-        threshold = np.percentile(scores, percentile)
-        data['relu_score'] = np.maximum(0, data['cos_sim'] - threshold)
-
-        # Create daily uncertainty index
         print("Aggregate Daily")
-        daily_index = self._agg_daily(data=data, labels='relu_score', name='relu_score')
+        daily_index = self._agg_daily(data=self.data, labels='relu_score', name='relu_score')
 
-        # Setup article index
-        art = data[['relu_score', 'headline', 'document']]
-        art = art.sort_values(by='relu_score', ascending=False)
-
-        # Retrieve top article per month
         print("Aggregate Monthly")
-        monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'relu_score')).reset_index(level=0, drop=True)
+        monthly_art = self.data.nlargest(1, 'relu_score', keep='all')
         monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
-        monthly_art = monthly_art[['headline', 'document']]
+        monthly_art = monthly_art[['headline', 'body_txt']].rename(columns={'body_txt':'document'})
 
-        # Join score and article
-        gen_index = daily_index.resample('M').mean()
-        gen_combine = pd.concat([gen_index, monthly_art], axis=1)
-        gen_index.index = gen_index.index.strftime('%Y-%m-%d')
-        gen_combine.index = gen_combine.index.strftime('%Y-%m-%d')
-
-        # Min Max
         print("Min-Max Scale")
         scaler = MinMaxScaler(feature_range=(0, 1))
-        data_to_scale = gen_index[['relu_score']]
-        scaled_data = scaler.fit_transform(data_to_scale)
-        gen_index[['relu_score']] = scaled_data
+        scaled_data = scaler.fit_transform(daily_index.to_frame())
+        daily_index = pd.DataFrame(scaled_data, index=daily_index.index, columns=['attention'])
 
-        # Rename column
-        gen_index.columns = ['attention']
-        return gen_index, gen_combine
-
+        return daily_index, monthly_art
 
