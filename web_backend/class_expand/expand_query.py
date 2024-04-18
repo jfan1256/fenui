@@ -29,8 +29,9 @@ class ExpandQuery:
                                             "query: The specific topic or narrative the user wants to track. If not specified, return null."
                                             "start_date: The start date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
                                             "end_date: The end date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
-                                            "p_val: The p-value specified by the user. If not specified, return null"
-                                            "Return a JSON object with the keys query, start_date, end_date, and p_val. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
+                                            "p_val: The p-value specified by the user. If not specified, return null."
+                                            "expand: The boolean of whether to expand or not, formatted as true or false. If not specified, return null."
+                                            "Return a JSON object with the keys query, start_date, end_date, p_val, and expand. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
                  }
             ],
             temperature=0.75,
@@ -83,7 +84,12 @@ class ExpandQuery:
             self.query['end_date'] = '2021-12-31'
         if self.query['p_val'] in [None, 'null', 'None']:
             self.query['p_val'] = 0.01
+        if self.query['expand'] in [None, 'null', 'None']:
+            self.query['expand'] = True
 
         # Expand query
-        self._expand_query()
+        if self.query['expand']:
+            self._expand_query()
+        else:
+            self.query['expanded_query'] = self.query['query']
         return self.query

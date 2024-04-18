@@ -18,7 +18,7 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, and p-value. If not, I will use default values 1984-01-01, 2021-12-31, and 0.01. Please note, the longer your desired time frame, the longer it will take to generate.
+                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, p-value, and to expand your query or not. If not, I will use default values 1984-01-01, 2021-12-31, 0.01, and expand set to True. Please note, the longer your desired time frame, the longer it will take to generate.
                     </p>
                     <p>
                         Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!

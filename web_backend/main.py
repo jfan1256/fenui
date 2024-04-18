@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify, g
 from datetime import datetime
 from flask_cors import CORS
 
-from class_fetch.query_fetch import QueryFetch
+from class_fetch.fetch_data import FetchData
 from class_generate.generate_index import GenerateIndex
 from class_plot.plot_plotly import PlotPlotly
 from class_expand.expand_query import ExpandQuery
@@ -68,7 +68,7 @@ def generate_plot():
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Invalid input format, please follow the desired input message format.'}), 400
 
-
+    # Store extracted info
     query = extracted_info['expanded_query']
     start_date_str = extracted_info['start_date']
     end_date_str = extracted_info['end_date']
@@ -98,15 +98,15 @@ def generate_plot():
 
     # Fetch Data from Milvus Database
     try:
-        query_fetch = QueryFetch(label=query, start_date=start_date_str, end_date=end_date_str, prod=prod, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
-        query = query_fetch.query_fetch()
+        fetch_data = FetchData(label=query, start_date=start_date_str, end_date=end_date_str, prod=prod, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
+        data = fetch_data.fetch_data()
     except Exception as e:
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
 
     # Generate Index and Article index
     print("-" * 60 + f"\nGenerate Index")
-    generate_index = GenerateIndex(query=query, p_vaL=p_val)
+    generate_index = GenerateIndex(data=data, p_val=p_val)
     gen_index, gen_combine = generate_index.generate_index()
     print("-" * 60 + f"\ngen_index: {gen_index}")
     print("-" * 60 + f"\ngen_combine: {gen_combine}")

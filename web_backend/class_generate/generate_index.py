@@ -5,16 +5,16 @@ from sklearn.preprocessing import MinMaxScaler
 
 class GenerateIndex:
     def __init__(self,
-                 query=None,
-                 p_vaL=None):
+                 data=None,
+                 p_val=None):
 
         '''
-        query (str): Expanded query
-        p_vaL (str): p-value used for cosine similarity threshold
+        data (dict): score and metadata for index
+        p_val (str): p-value used for cosine similarity threshold
         '''
 
-        self.query = query
-        self.p_val = p_vaL
+        self.data = data
+        self.p_val = p_val
 
     # Aggregate daily
     @staticmethod
@@ -27,28 +27,8 @@ class GenerateIndex:
 
     # Generate uncertainty index
     def generate_index(self):
-        # Prepare lists
-        dates = []
-        cos_sims = []
-        headlines = []
-        documents = []
-
-        # Iterate through each date's results in the query response
-        for daily_results in self.query:
-            for result in daily_results.values():
-                for article in result:
-                    dates.append(article['date'])
-                    cos_sims.append(article['score'])
-                    headlines.append(article['headline'])
-                    documents.append(article['document'])
-
         # Create pandas dataframe
-        data = pd.DataFrame({
-            'date': dates,
-            'cos_sim': cos_sims,
-            'headline': headlines,
-            'document': documents
-        })
+        data = pd.DataFrame(self.data)
         data['date'] = pd.to_datetime(data['date'])
         data = data.set_index('date').sort_index()
 
