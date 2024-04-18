@@ -29,7 +29,7 @@ class GenEmb:
                  ):
 
         '''
-        query (str): User input (should contain a label, start date and end date)
+        query (str): User input (should contain a query, start date and end date)
         expand(bool): Expand query or not
         info (bool): Extract info or not (i.e., info=info if query='Systemic Financial Distress')
         type (str): Method to generate an index (either 'embedding', 'tfidf', 'count')

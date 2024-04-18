@@ -1,42 +1,39 @@
-import re
-import traceback
-
-import pandas as pd
-
-import config
+import os
 import json
 import time
 import uuid
+import config
+import traceback
+import pandas as pd
 
-from flask import Flask, request, jsonify, g
-from datetime import datetime
 from flask_cors import CORS
+from datetime import datetime
+from flask import Flask, request, jsonify, g
 
-from class_fetch.fetch_data import FetchData
-from class_generate.generate_index import GenerateIndex
+from class_data.data import Data
+from utils.system import get_format_data
 from class_plot.plot_plotly import PlotPlotly
+from class_generate.generate_index import GenerateIndex
 from class_expand.expand_query import ExpandQuery
 
 app = Flask(__name__)
-
-prod = False
+prod = True
 
 if prod == True:
     # Prod CORS (This is connecting to the frontend url)
     CORS(app, resources={r"/generate_plot": {"origins": "https://fenui.vercel.app"}})
-
-    # Ngrok Tunnel (This is a secure tunnel to broadcast localhost to the internet - for milvus that would be broadcasting localhost:19530)
-    # Must update this everytime by running ngrok tcp 19530 in ngrok command prompt
-    # Must ensure that milvus docker-compose is running on-prem
-    ngrok_config = json.load(open('../ngrok/ngrok.json'))
-    ngrok_host = ngrok_config['tcp_host']
-    ngrok_port = ngrok_config['tcp_port']
-
 else:
     # Local CORS
     CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
-    ngrok_host = None
-    ngrok_port = None
+
+# Global data storage
+print("-" * 60 + "\nLoading data into memory")
+# Multiple Articles per Day Open AI Embeddings
+data = Data(folder_path=get_format_data() / 'web', file_pattern='wsj_all_*')
+global_data = data.concat_files()
+global_data = global_data.reset_index().set_index('date')
+global_data = global_data[['ada_embedding', 'headline', 'body_txt']]
+print("-" * 60 + "\nData loaded successfully")
 
 # Log Version
 @app.route("/version", methods=["GET"], strict_slashes=False)
@@ -51,7 +48,7 @@ def version():
 def generate_plot():
     '''
     To test local flask server run this:
-        1. Start the flask server by cding to the directory that this file is located in and running this in powershell: python main.py
+        1. Start the flask server by cding to the directory that this file is located in and running this in powershell: python flask_generate_pq.py
         2. To test the server: Invoke-WebRequest -Uri http://localhost:5000/generate_plot -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"input_str": "Label: artificial intelligence, Start Date: 2010-01-01, End Date: 2010-01-01, P-val: 0.01"}'
     '''
 
@@ -75,8 +72,8 @@ def generate_plot():
     p_val = extracted_info['p_val']
 
     # Check query
-    if query == 'None':
-        return jsonify({'error': 'A query was not specified or not correctly processed, please clearly specify a label and try again.'}), 400
+    if query in [None, 'None', 'null'] :
+        return jsonify({'error': 'A query was not specified or not correctly processed, please clearly specify a query and try again.'}), 400
 
     # Convert start_date and end_date to date objects
     try:
@@ -96,18 +93,17 @@ def generate_plot():
     if start_date >= end_date:
         return jsonify({'error': 'Invalid date value, start_date should be before end_date.'}), 400
 
-    # Fetch Data from Milvus Database
+    # Get Data and calculate score
     try:
-        fetch_data = FetchData(label=query, start_date=start_date_str, end_date=end_date_str, prod=prod, ngrok_host=ngrok_host, ngrok_port=ngrok_port)
-        data = fetch_data.fetch_data()
+        data = global_data.loc[(global_data.index >= start_date_str) & (global_data.index <= end_date_str)]
     except Exception as e:
         print("-" * 60 + f"\n{traceback.format_exc()}")
-        return jsonify({'error': 'Unable to connect to database, please try again soon or later.'}), 400
+        return jsonify({'error': 'Unable to retrieve data, please try again soon or later.'}), 400
 
     # Generate Index and Article index
     print("-" * 60 + f"\nGenerate Index")
-    generate_index = GenerateIndex(data=data, p_val=p_val)
-    gen_index, gen_combine = generate_index.generate_index()
+    generate_index = GenerateIndex(data=data, query=query, p_val=p_val)
+    gen_index, gen_combine = generate_index.generate_index_pq()
     print("-" * 60 + f"\nGenerated Dataframe: \n\n\n{gen_combine}")
 
     # Plot Index
