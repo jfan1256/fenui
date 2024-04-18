@@ -150,7 +150,6 @@ class GenerateIndex:
         print("Calculate Score")
         vector_matrix = np.stack(self.data['ada_embedding'].values)
         scores = cosine_similarity(query_emb, vector_matrix)[0]
-
         self.data['cos_sim'] = scores
         threshold = np.percentile(scores, 100 * (1 - self.p_val))
         self.data['relu_score'] = np.maximum(0, self.data['cos_sim'] - threshold)
