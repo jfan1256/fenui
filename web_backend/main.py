@@ -108,8 +108,7 @@ def generate_plot():
     print("-" * 60 + f"\nGenerate Index")
     generate_index = GenerateIndex(data=data, p_val=p_val)
     gen_index, gen_combine = generate_index.generate_index()
-    print("-" * 60 + f"\ngen_index: {gen_index}")
-    print("-" * 60 + f"\ngen_combine: {gen_combine}")
+    print("-" * 60 + f"\nGenerated Dataframe: \n\n\n{gen_combine}")
 
     # Plot Index
     print("-" * 60 + f"\nPlot Index")
@@ -118,7 +117,6 @@ def generate_plot():
 
     # Save expanded query into pandas dataframe
     expand_query = pd.DataFrame([extracted_info])
-    print("-" * 60 + f"\nexpand_query: {expand_query}")
 
     return jsonify({
         'gen_plot': plot_fig,

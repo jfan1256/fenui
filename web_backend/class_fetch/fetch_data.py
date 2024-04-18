@@ -1,12 +1,18 @@
 import json
+import logging
 import numpy as np
 
+from tqdm import tqdm
 from openai import OpenAI
+from threading import get_ident
 from datetime import datetime, timedelta
 from pymilvus import connections, Collection, utility
 from sklearn.metrics.pairwise import cosine_similarity
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from utils.system import *
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - [Thread %(threadName)s] - %(message)s')
 
 class FetchData:
     def __init__(self,
@@ -159,64 +165,120 @@ class FetchData:
     #
     #     return all_results
 
+    # # Fetch data from Milvus
+    # def fetch_data(self):
+    #     # Get label embedding
+    #     label_emb = self._get_openai_emb(self.label)
+    #     label_emb = np.array(label_emb).reshape(1, -1)
+    #
+    #     # Prepare to store results
+    #     all_date = []
+    #     all_embeddings = []
+    #     all_headline = []
+    #     all_document = []
+    #
+    #     # Initialize start and end dates for batching
+    #     start_date = datetime.strptime(self.start_date, "%Y-%m-%d")
+    #     end_date = datetime.strptime(self.end_date, "%Y-%m-%d")
+    #     batch_size = timedelta(days=90)
+    #     count = 1
+    #
+    #     print("Fetching Data...")
+    #     while start_date < end_date:
+    #         # Calculate the end date of the current batch
+    #         current_end_date = min(start_date + batch_size, end_date)
+    #
+    #         # Create query expression for the current batch
+    #         query_expr = f"date >= {self._convert_date_to_int(start_date.strftime('%Y-%m-%d'))} and date <= {self._convert_date_to_int(current_end_date.strftime('%Y-%m-%d'))}"
+    #         milvus_data = self.collection.query(expr=query_expr, output_fields=['date', 'embedding', 'headline', 'document'])
+    #
+    #         print(f"Batch {count} ({start_date.strftime('%Y-%m-%d')} to {current_end_date.strftime('%Y-%m-%d')}) - fetched with {len(milvus_data)} records.")
+    #
+    #         # Collect data for each hit in the batch
+    #         for hit in milvus_data:
+    #             all_date.append(self._convert_int_to_date(hit['date']))
+    #             all_embeddings.append(hit['embedding'])
+    #             all_headline.append(hit['headline'])
+    #             all_document.append(hit['document'])
+    #
+    #         # Move to the next batch
+    #         start_date = current_end_date + timedelta(days=1)
+    #         count+=1
+    #
+    #     # Calculate score if embeddings were collected
+    #     print("Calculating Scores...")
+    #     embedding_matrix = np.vstack(all_embeddings)
+    #     all_score = cosine_similarity(label_emb, embedding_matrix)[0]
+    #
+    #     # Create dict with all data
+    #     data = {
+    #         'date': all_date,
+    #         'cos_sim': all_score,
+    #         'headline': all_headline,
+    #         'document': all_document
+    #     }
+    #
+    #     return data
+
+    # Fetch data batch
+    def _fetch_data_batch(self, start_date, end_date):
+        logging.info(f"Starting batch query: {start_date} to {end_date} on thread {get_ident()}")
+        query_expr = f"date >= {self._convert_date_to_int(start_date.strftime('%Y-%m-%d'))} and date <= {self._convert_date_to_int(end_date.strftime('%Y-%m-%d'))}"
+        milvus_data = self.collection.query(expr=query_expr, output_fields=['date', 'embedding', 'headline', 'document'])
+        batch_results = {'date': [], 'embedding': [], 'headline': [], 'document': []}
+        for hit in milvus_data:
+            batch_results['date'].append(self._convert_int_to_date(hit['date']))
+            batch_results['embedding'].append(hit['embedding'])
+            batch_results['headline'].append(hit['headline'])
+            batch_results['document'].append(hit['document'])
+        logging.info(f"Completed batch query: {start_date} to {end_date}")
+        return batch_results
+
     # Fetch data from Milvus
-    def fetch_data(self):
+    def fetch_data(self, batch_size=30, max_concurrent_batches=5):
         # Get label embedding
         label_emb = self._get_openai_emb(self.label)
         label_emb = np.array(label_emb).reshape(1, -1)
 
-        # Prepare to store results
-        all_metadata = []
-        all_embeddings = []
-
-        # Initialize start and end dates for batching
+        # Params
         start_date = datetime.strptime(self.start_date, "%Y-%m-%d")
         end_date = datetime.strptime(self.end_date, "%Y-%m-%d")
-        batch_size = timedelta(days=90)
-        count = 1
+        batch_size = timedelta(days=batch_size)
 
-        print("Fetching Data...")
+        # Create batches
+        batches = []
         while start_date < end_date:
-            # Calculate the end date of the current batch
             current_end_date = min(start_date + batch_size, end_date)
-
-            # Create query expression for the current batch
-            query_expr = f"date >= {self._convert_date_to_int(start_date.strftime('%Y-%m-%d'))} and date <= {self._convert_date_to_int(current_end_date.strftime('%Y-%m-%d'))}"
-            metadata = self.collection.query(expr=query_expr, output_fields=['date', 'embedding', 'headline', 'document'])
-            embedding = self.collection.query(expr=query_expr, output_fields=['embedding'])
-
-            print(f"Batch {count} ({start_date.strftime('%Y-%m-%d')} to {current_end_date.strftime('%Y-%m-%d')}) - fetched with {len(metadata)} records.")
-
-            # Process embeddings
-            if embedding:
-                batch_embeddings = [hit['embedding'] for hit in embedding]
-                all_embeddings.extend(batch_embeddings)
-
-            # Collect metadata for each hit in the batch
-            for hit in metadata:
-                collect_date = self._convert_int_to_date(hit.get('date'))
-                collect_headline = hit.get('headline')
-                collect_document = hit.get('document')
-                all_metadata.append({'date': collect_date, 'headline': collect_headline, 'document': collect_document})
-
-            # Move to the next batch
+            batches.append((start_date, current_end_date))
             start_date = current_end_date + timedelta(days=1)
-            count+=1
+
+        # Fetch data in chunks
+        all_date = []
+        all_embeddings = []
+        all_headline = []
+        all_document = []
+        for i in tqdm(range(0, len(batches), max_concurrent_batches), desc="Processing chunks"):
+            with ThreadPoolExecutor(max_workers=max_concurrent_batches) as executor:
+                chunk = batches[i:i + max_concurrent_batches]
+                futures = [executor.submit(self._fetch_data_batch, start, end) for start, end in chunk]
+                # for future in tqdm(as_completed(futures), total=len(futures), desc="Fetching data batches"):
+                for future in as_completed(futures):
+                    result = future.result()
+                    all_date.extend(result['date'])
+                    all_embeddings.extend(result['embedding'])
+                    all_headline.extend(result['headline'])
+                    all_document.extend(result['document'])
 
         # Calculate score if embeddings were collected
-        print("Calculating Scores...")
-        if all_embeddings:
-            embedding_matrix = np.vstack(all_embeddings)
-            collect_score = cosine_similarity(label_emb, embedding_matrix)[0]
-        else:
-            collect_score = []
+        embedding_matrix = np.vstack(all_embeddings)
+        all_score = cosine_similarity(label_emb, embedding_matrix)[0]
 
         # Create dict with all data
         data = {
-            'date': [md['date'] for md in all_metadata],
-            'cos_sim': collect_score,
-            'headline': [md['headline'] for md in all_metadata],
-            'document': [md['document'] for md in all_metadata]
+            'date': all_date,
+            'cos_sim': all_score,
+            'headline': all_headline,
+            'document': all_document
         }
 
         return data
