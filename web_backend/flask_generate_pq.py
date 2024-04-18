@@ -17,7 +17,7 @@ from class_generate.generate_index import GenerateIndex
 from class_expand.expand_query import ExpandQuery
 
 app = Flask(__name__)
-prod = False
+prod = True
 
 if prod == True:
     # Prod CORS (This is connecting to the frontend url)
