@@ -142,9 +142,10 @@ class GenerateIndex:
     #     # Rename column
     #     gen_index.columns = ['attention']
     #     return gen_index, gen_combine
+
     def generate_index_pq(self):
         print("Get query embedding")
-        query_emb = self._get_openai_emb(self.query).reshape(1, -1)
+        query_emb = np.array(self._get_openai_emb(self.query)).reshape(1, -1)
 
         print("Calculate Score")
         vector_matrix = np.stack(self.data['ada_embedding'].values)
