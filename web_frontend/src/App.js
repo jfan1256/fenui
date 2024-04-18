@@ -218,7 +218,7 @@ function App() {
             const headline = currentline[1].trim();
             const document = currentline.slice(2).join(',').trim();
 
-            result.push({ date, transformCosineSim, headline, document });
+            result.push({ date, headline, document });
         }
 
         return result;
