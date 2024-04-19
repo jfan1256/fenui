@@ -78,6 +78,12 @@ class ExpandQuery:
         # Extract info (i.e., start_date, end_date, etc.) or set default values
         self._extract_info()
 
+        # Return if query is none
+        if self.query['query'] in [None, 'null', 'None']:
+            self.query['query'] = None
+            return self.query
+
+        # Set default values
         if self.query['start_date'] in [None, 'null', 'None']:
             self.query['start_date'] = '1984-01-01'
         if self.query['end_date'] in [None, 'null', 'None']:
