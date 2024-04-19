@@ -123,7 +123,7 @@ function App() {
             setPlotDataDetails(parsedCombineData);
 
              // Simulate typing and then update the message with the plot
-            simulateTyping("Here is your generated attention index, click on any date to view the article that is most related toward your desired label! ",
+            simulateTyping("Here is your generated attention index, click on any date to view the article that is most related toward your desired query! ",
                 false,
                 () => {
                 setMessages(prevMessages => [
