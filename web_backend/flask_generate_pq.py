@@ -65,15 +65,15 @@ def generate_plot():
         print("-" * 60 + f"\n{traceback.format_exc()}")
         return jsonify({'error': 'Invalid input format, please follow the desired input message format.'}), 400
 
+    # Check query
+    if extracted_info['query'] in [None, 'None', 'null'] :
+        return jsonify({'error': 'A query was not specified or not correctly processed, please clearly specify a query and try again.'}), 400
+
     # Store extracted info
     query = extracted_info['expanded_query']
     start_date_str = extracted_info['start_date']
     end_date_str = extracted_info['end_date']
     p_val = extracted_info['p_val']
-
-    # Check query
-    if query in [None, 'None', 'null'] :
-        return jsonify({'error': 'A query was not specified or not correctly processed, please clearly specify a query and try again.'}), 400
 
     # Convert start_date and end_date to date objects
     try:
