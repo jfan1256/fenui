@@ -54,7 +54,7 @@ class GenerateIndex:
         for start in range(0, num_embeddings, batch_size):
             end = start + batch_size
             batch_embeddings = np.stack(embeddings[start:end]).astype(np.float32)
-            scores[start:end] = cosine_similarity(query, batch_embeddings)[:, 0]
+            scores[start:end] = cosine_similarity(query, batch_embeddings)[0]
         return scores
 
     # Generate attention index for database
