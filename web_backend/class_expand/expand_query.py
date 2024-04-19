@@ -80,7 +80,6 @@ class ExpandQuery:
 
         # Return if query is none
         if self.query['query'] in [None, 'null', 'None']:
-            self.query['query'] = None
             return self.query
 
         # Set default values
