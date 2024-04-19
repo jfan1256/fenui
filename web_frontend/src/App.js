@@ -214,11 +214,11 @@ function App() {
 
             // Assuming the order is date, transform_cosine_sim, headline, document
             const date = currentline[0].trim();
-            // const transformCosineSim = currentline[1].trim();
-            const headline = currentline[1].trim();
-            const document = currentline.slice(2).join(',').trim();
+            const transformCosineSim = currentline[1].trim();
+            const headline = currentline[2].trim();
+            const document = currentline.slice(3).join(',').trim();
 
-            result.push({ date, headline, document });
+            result.push({ date, transformCosineSim, headline, document });
         }
 
         return result;
