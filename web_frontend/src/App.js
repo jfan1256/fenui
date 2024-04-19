@@ -132,7 +132,7 @@ function App() {
                         type: "plot",
                         content: plotData,
                         isBot: true,
-                        text: "Here is your generated attention index, click on any date to view the article that is most related toward your desired label! ",
+                        text: "Here is your generated attention index, click on any date to view the article that is most related toward your desired query! ",
                     }
                 ]);
             }, () => setBotIsTyping(false));
