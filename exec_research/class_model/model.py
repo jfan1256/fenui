@@ -10,6 +10,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 
+from utils.system import get_reports
+
 
 class Model:
     def __init__(self,
