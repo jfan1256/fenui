@@ -12,7 +12,6 @@ from sklearn.preprocessing import MinMaxScaler
 from utils.system import *
 from class_data.data import Data
 
-
 class GenEmb:
     def __init__(self,
                  query=None,
