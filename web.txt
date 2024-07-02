@@ -12,6 +12,6 @@ Steps to setup website (database):
 Steps to setup website (parquet):
 1. Start Ngrok connection by running ngrok.exe under .ngrok folder and run this command:
     -> ngrok start --all --config "C:\\Jonathan\\QuantResearch\\AlgoTradingModels\\fenui\\ngrok\\ngrok.yml"
-2. Update tcp_host, tcp_server, and http_link in ngrok.json based off new ngrok connection
-3. Start Flask Server by running flask_generate_pq.py under web_backend
-4. Update http_link/generate_index in App.js for Flask Backend Connection
+2. Update http_link (i.e., https://408d-128-255-234-12.ngrok-free.app/generate_plot) in App.js
+3. Start Flask Server by running "python flask_generate_pq.py" in terminal under web_backend directory
+4. Push website to GitHub and Vercel will automatically update
