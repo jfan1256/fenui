@@ -12,17 +12,17 @@ class GenerateIndex:
     def __init__(self,
                  data=None,
                  query=None,
-                 p_val=None):
+                 percentile_val=None):
 
         '''
         data (dict): score and metadata for index
         query (str): query
-        p_val (str): p-value used for cosine similarity threshold
+        percentile_val (str): p-value used for cosine similarity threshold
         '''
 
         self.data = data
         self.query = query
-        self.p_val = p_val
+        self.percentile_val = percentile_val
 
         # Get API Key
         api = json.load(open(get_config() / 'api.json'))
@@ -66,7 +66,7 @@ class GenerateIndex:
 
         # Apply transformation (p-value percentile threshold)
         scores = np.array(data['cos_sim'])
-        percentile = 100 * (1 - self.p_val)
+        percentile = 100 * (1 - self.percentile_val)
         threshold = np.percentile(scores, percentile)
         data['relu_score'] = np.maximum(0, data['cos_sim'] - threshold)
 
@@ -118,9 +118,9 @@ class GenerateIndex:
         self.data['cos_sim'] = score
         self.data = self.data.rename(columns={'body_txt':'document'})
 
-        # Apply transformation (p-value percentile threshold)
+        # Apply transformation (percentile value percentile threshold)
         scores = np.array(self.data['cos_sim'])
-        percentile = 100 * (1 - self.p_val)
+        percentile = 100 * (1 - self.percentile_val)
         threshold = np.percentile(scores, percentile)
         self.data['relu_score'] = np.maximum(0, self.data['cos_sim'] - threshold)
 
