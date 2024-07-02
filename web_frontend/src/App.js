@@ -158,25 +158,24 @@ function App() {
         setBotIsTyping(true);
 
         if (text === "About Us") {
-            res = "This service was developed by Jonathan Fan, Yinan Su, and Leland Bybee who are active researchers at Yale University, John Hopkins University, and University of Chicago. We developed this website in hopes " +
-                  "of allowing finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index is a widely-research index that accurately measures uncertainty in the market" +
-                  " with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate attention indexes that are specifically catered " +
-                  "toward a user's interest. For example, our method can generate an attention index that specifically tracks Artificial Intelligence over the past decade. We have also statistically proven, that our own " +
-                  " generated 'EPU' index is highly correlated to the actual EPU index, further validating our method. Check out our paper to read more about our methodology! With this tool, " +
-                  "you can generate any attention index catered for your interest! " +
-                  "If you have any questions regarding data, methodology, and purpose feel free to contact us at either jonathan.fan@yale.edu, ys@jhu.edu, or leland.bybee@yale.edu. We would love to chat!"
+            res = "This service was developed by Leland Bybee, Jonathan Fan, and Yinan Su who are active researchers at the University of Chicago, Yale University, and John Hopkins University respectively. We developed this website in hopes " +
+                  "of allowing Economic and Finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index developed by Baker et al. is a widely-referenced attention index that accurately measures uncertainty in the market " +
+                  "with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate attention indexes that are specifically catered " +
+                  "toward a user's interest. For example, our method can generate an attention index that specifically tracks Artificial Intelligence over the past decade. We have also shown, that our own " +
+                  "generated 'EPU' index is highly correlated to the actual EPU index as long with many other peer-reviewed literature attention indices, further validating our method. Check out our paper to read more about our methodology! " +
+                  "If you have any questions regarding data, methodology, and purpose feel free to contact us at either leland.bybee@yale.edu, jonathan.fan@yale.edu, or ys@jhu.edu. We would love to chat!"
         } else if (text === "How to use?") {
             res = "To generate an index, our method requires one parameter: query. The query can be anything, ranging from 'I like playing basketball' to " +
                   "'Uncertainty in the stock price market'. Next there are three optional parameters to specify: start date, end date, percentile, and expand. For start and end date, we currently only provide data generation from 1984-01-01 to 2021-12-31 (default values for start date and end date)." +
                   " Please specify your time frame within this range and make sure the start date " +
                   " comes before end date. Next, the percentile (default value is 0.01) determines the significance level used to calculate the threshold for our relu transformation applied on a daily interval (more info in our paper). The basic intuition for this transformation is this: for each date we have an average of around 200 articles." +
-                  " Instead of just averaging the cosine similarity score of these articles, our percentile relu transformations only considers the most relevant articles - effectively removing any noise. Lastly, expand is for" +
+                  " Instead of just averaging the cosine similarity scores of all these 200 articles, our percentile relu transformations only considers the most relevant articles to average across - effectively removing any noise. Lastly, expand is for" +
                   " whether you want to generate an index based off your original query or an expanded query (more info in this expanded query in our paper). That's it!";
         } else if (text === "How does it work?") {
             res = "For data, we first compiled around 900,000 Wall Street Journal articles on a daily timeframe from 1984 to 2021. Each day has around 200 articles. From here, we then " +
-                  "used a LLM to generated an embeddings dataset. Now to actually generate the index, we first expand you query using ChatGPT to capture all points of you query. We then retrieve the embeddings of this expanded query and calculate the cosine " +
+                  "used an OpenAI's textembed3small model to generated an embeddings dataset. To actually generate the index, we first expand you query using ChatGPT-4 to capture all points of you query if specified. We then retrieve the embeddings of this expanded query (or original) and calculate the cosine " +
                   " similarity score of each article's embedding compared with the label embedding. From here, we then apply a percentile relu transformation on each score to eliminate irrelevant articles and calculate the " +
-                  " average score per date. Lastly, we then aggregate the daily timeseries to our final monthly timeseries of scores, which accurately represents the attention index with regards to your inputted query. For more information on" +
+                  " average score per date. Finally, we aggregate the daily timeseries per monthly to achieve our final monthly timeseries of scores, which accurately represents the attention index with regards to your inputted query. For more information on" +
                   " our methodology and it's validity, check out our paper!"
         }
 
