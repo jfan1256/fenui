@@ -159,10 +159,10 @@ function App() {
 
         if (text === "About Us") {
             res = "This service was developed by Leland Bybee, Jonathan Fan, and Yinan Su who are active researchers at the University of Chicago, Yale University, and John Hopkins University respectively. We developed this website in hopes " +
-                  "of allowing Economic and Finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index developed by Baker et al. is a widely-referenced attention index that accurately measures uncertainty in the market " +
-                  "with regards to all aspects of economics (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate attention indexes that are specifically catered " +
-                  "toward a user's interest. For example, our method can generate an attention index that specifically tracks Artificial Intelligence over the past decade. We have also shown, that our own " +
-                  "generated 'EPU' index is highly correlated to the actual EPU index as long with many other peer-reviewed literature attention indices, further validating our method. Check out our paper to read more about our methodology! " +
+                  "of allowing Economic and Finance researchers to have access to this incredible tool. Currently, the Economic Policy Uncertainty (EPU) Index developed by Baker et al. is a widely-referenced attention index that accurately tracks uncertainty in the market " +
+                  "via numerous economic variables (i.e., FED Policy, New's Articles, etc.). In our research, we introduce a novel method to generate ANY attention index that is specifically catered " +
+                  "toward a user's interest. For example, our method can generate an attention index that specifically tracks 'Artificial Intelligence' over the past decade. We have also demonstrated " +
+                  "that our generated EPU index closely correlates with the actual EPU index and aligns well with several other attention indices cited in peer-reviewed literature, further validating our methodology. Check out our paper to read more about our methodology! " +
                   "If you have any questions regarding data, methodology, and purpose feel free to contact us at either leland.bybee@yale.edu, jonathan.fan@yale.edu, or ys@jhu.edu. We would love to chat!"
         } else if (text === "How to use?") {
             res = "To generate an index, our method requires one parameter: query. The query can be anything, ranging from 'I like playing basketball' to " +
