@@ -29,9 +29,9 @@ class ExpandQuery:
                                             "query: The specific topic or narrative the user wants to track. If not specified, return null."
                                             "start_date: The start date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
                                             "end_date: The end date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
-                                            "percentile_val: The percentile value specified by the user. If not specified, return null."
+                                            "percentile: The percentile specified by the user. If not specified, return null."
                                             "expand: The boolean of whether to expand or not, formatted as true or false. If not specified, return null."
-                                            "Return a JSON object with the keys query, start_date, end_date, percentile_val, and expand. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
+                                            "Return a JSON object with the keys query, start_date, end_date, percentile, and expand. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
                  }
             ],
             temperature=0.75,
@@ -87,8 +87,8 @@ class ExpandQuery:
             self.query['start_date'] = '1984-01-01'
         if self.query['end_date'] in [None, 'null', 'None']:
             self.query['end_date'] = '2021-12-31'
-        if self.query['percentile_val'] in [None, 'null', 'None']:
-            self.query['percentile_val'] = 0.01
+        if self.query['percentile'] in [None, 'null', 'None']:
+            self.query['percentile'] = 0.01
         if self.query['expand'] in [None, 'null', 'None']:
             self.query['expand'] = True
 

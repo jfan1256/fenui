@@ -18,7 +18,7 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, percentile value, and to expand your query or not. If not, I will use default values 1984-01-01, 2021-12-31, 0.01, and expand set to True. Please note, the longer your desired time frame, the longer it will take to generate. Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!
+                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, percentile, and to expand your query or not. If not, I will use default values 1984-01-01, 2021-12-31, 0.01, and expand set to True. Please note, the longer your desired time frame, the longer it will take to generate. Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!
                     </p>
                 </div>,
                 isBot: true,
@@ -167,9 +167,9 @@ function App() {
                   "If you have any questions regarding data, methodology, and purpose feel free to contact us at either jonathan.fan@yale.edu, ys@jhu.edu, or leland.bybee@yale.edu. We would love to chat!"
         } else if (text === "How to use?") {
             res = "To generate an index, our method requires one parameter: query. The query can be anything, ranging from 'I like playing basketball' to " +
-                  "'Uncertainty in the stock price market'. Next there are three optional parameters to specify: start date, end date, percentile value, and expand. For start and end date, we currently only provide data generation from 1984-01-01 to 2021-12-31 (default values for start date and end date)." +
+                  "'Uncertainty in the stock price market'. Next there are three optional parameters to specify: start date, end date, percentile, and expand. For start and end date, we currently only provide data generation from 1984-01-01 to 2021-12-31 (default values for start date and end date)." +
                   " Please specify your time frame within this range and make sure the start date " +
-                  " comes before end date. Next, the percentile value (default value is 0.01) determines the significance level used to calculate the threshold for our relu transformation applied on a daily interval (more info in our paper). The basic intuition for this transformation is this: for each date we have an average of around 200 articles." +
+                  " comes before end date. Next, the percentile (default value is 0.01) determines the significance level used to calculate the threshold for our relu transformation applied on a daily interval (more info in our paper). The basic intuition for this transformation is this: for each date we have an average of around 200 articles." +
                   " Instead of just averaging the cosine similarity score of these articles, our percentile relu transformations only considers the most relevant articles - effectively removing any noise. Lastly, expand is for" +
                   " whether you want to generate an index based off your original query or an expanded query (more info in this expanded query in our paper). That's it!";
         } else if (text === "How does it work?") {

@@ -73,7 +73,7 @@ def generate_plot():
     query = extracted_info['expanded_query']
     start_date_str = extracted_info['start_date']
     end_date_str = extracted_info['end_date']
-    percentile_val = extracted_info['percentile_val']
+    percentile = extracted_info['percentile']
 
     # Convert start_date and end_date to date objects
     try:
@@ -102,7 +102,7 @@ def generate_plot():
 
     # Generate Index and Article index
     print("-" * 60 + f"\nGenerate Index")
-    generate_index = GenerateIndex(data=data, query=query, percentile_val=percentile_val)
+    generate_index = GenerateIndex(data=data, query=query, percentile=percentile)
     gen_index, gen_combine = generate_index.generate_index_pq()
     print("-" * 60 + f"\nGenerated Dataframe: \n\n\n{gen_combine}")
 
