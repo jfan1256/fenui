@@ -134,12 +134,12 @@ class GenerateIndex:
 
         # Retrieve top article per month
         print("Aggregate Monthly")
-        monthly_art = art.groupby(pd.Grouper(freq='M')).apply(lambda x: x.nlargest(1, 'relu_score')).reset_index(level=0, drop=True)
-        monthly_art.index = monthly_art.index.to_period('M').to_timestamp('M')
+        monthly_art = art.groupby(pd.Grouper(freq='ME')).apply(lambda x: x.nlargest(1, 'relu_score')).reset_index(level=0, drop=True)
+        monthly_art.index = monthly_art.index.to_period('ME').to_timestamp('ME')
         monthly_art = monthly_art[['headline', 'document']]
 
         # Join score and article
-        gen_index = daily_index.resample('M').mean()
+        gen_index = daily_index.resample('ME').mean()
         gen_combine = pd.concat([gen_index, monthly_art], axis=1)
         gen_index.index = gen_index.index.strftime('%Y-%m-%d')
         gen_combine.index = gen_combine.index.strftime('%Y-%m-%d')

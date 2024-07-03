@@ -20,7 +20,8 @@ class ExpandQuery:
     def _extract_info(self):
         # Embedding Extraction
         response = self.client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            # model="gpt-4-turbo-preview",
+            model="gpt-4o",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "user", "content": "Given a user's textual request about tracking the attention index of a specific topic or narrative over time, extract the relevant fields so that they can be supplied to function in a structured format."
@@ -48,7 +49,8 @@ class ExpandQuery:
     # Expand Query
     def _expand_query(self):
         response = self.client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            # model="gpt-4-turbo-preview",
+            model="gpt-4o",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "user", "content": "Your job is to output expanded queries to represent the concept in the input query:"
