@@ -272,8 +272,8 @@ function App() {
                 <div className="chats">
                     {messages.map((message, i)=>
                         <div key={i} className={message.isBot?"chat bot":"chat"}>
-                            {/*<img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />*/}
-                            <img className="chatImg" src={message.isBot ? userIcon : userIcon} alt="" />
+                            <img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />
+                            {/*<img className="chatImg" src={message.isBot ? userIcon : userIcon} alt="" />*/}
                             <div className="message-text">
                                 <div className="message-label">{message.isBot ? "NarrativeTracker" : "You"}</div>
                                 {message.text === "Bot is typing..."
