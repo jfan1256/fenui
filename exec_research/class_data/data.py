@@ -89,6 +89,24 @@ class Data:
             self.data['ir'] = pd.to_numeric(self.data['ir'], errors='coerce')
             self.data['ir'].fillna(0, inplace=True)
             return self.data
+        elif self.name == 'vix_option' or self.name == 'vix_sp500':
+            # Rename columns
+            self.data.columns = ['date', 'vix']
+            # Convert date to datetime
+            self.data.date = pd.to_datetime(self.data.date)
+            self.data = self.data.set_index('date')
+            # Convert data to float
+            self.data['vix'] = pd.to_numeric(self.data['vix'], errors='coerce')
+            self.data['vix'].fillna(0, inplace=True)
+            return self.data
+        elif self.name == 'tsla':
+            self.data = self.data[['Date', 'Close/Last']]
+            self.data.columns = ['date', 'close']
+            self.data.date = pd.to_datetime(self.data.date)
+            self.data = self.data.set_index('date').sort_index()
+            self.data['close'] = self.data['close'].str.replace('$', '')
+            self.data['close'] = self.data['close'].astype(float)
+            return self.data
         elif self.name == 'fsi':
             # Fetch data
             self.data = self.data[['Date', 'OFR FSI']]

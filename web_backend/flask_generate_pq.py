@@ -1,10 +1,11 @@
-import os
 import json
 import time
 import uuid
 import config
+import warnings
 import traceback
 import pandas as pd
+warnings.filterwarnings('ignore')
 
 from flask_cors import CORS
 from datetime import datetime

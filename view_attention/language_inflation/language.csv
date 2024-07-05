@@ -1,0 +1,7 @@
+Language,Query,Query Embedding Correlation,Attention Index Correlation
+English,inflation,1.0,1.0
+Chinese,通货膨胀,0.5038007743952037,0.761615999054498
+Russian,инфляция,0.6530416588868003,0.9619650466146986
+Spanish,inflación,0.7345888707292095,0.940505652539761
+French,d'inflation,0.7621319971814758,0.9700032687676082
+Arabic,زِيادة في الأَسْعار,0.3789771896372625,0.4752651483454157

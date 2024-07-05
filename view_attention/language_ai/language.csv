@@ -1,0 +1,7 @@
+Language,Query,Query Embedding Correlation,Attention Index Correlation
+English,inflation,1.0,1.0
+Chinese,人工智能,0.585052495093272,0.9068121476549518
+Russian,искусственный интеллект,0.5438574917329725,0.4253999444843413
+Spanish,inteligencia artificial,0.6867441166786178,0.9396758279980975
+French,intelligence artificielle,0.7061348034272026,0.8943778341278025
+Arabic,الذكاء الاصطناعي,0.3569189476236751,0.36775291553936096

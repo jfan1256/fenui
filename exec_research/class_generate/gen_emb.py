@@ -70,10 +70,10 @@ class GenEmb:
                                             "start_date: The start date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
                                             "end_date: The end date for tracking, formatted as YYYY-MM-DD. If not specified, return null."
                                             "Return a JSON object with the keys query, start_date, and end_date. If a field is missing, set the corresponding value to null. This will indicate that the field was not specified by the user and can be filled with default values later."
-                 }
+                }
             ],
             temperature=0.75,
-            max_tokens=500,
+            max_tokens=1000,
             top_p=0.75,
             frequency_penalty=0,
             presence_penalty=0,
@@ -96,10 +96,10 @@ class GenEmb:
                                             "I am going to use openai's embedding model to compare the cosine similarity between each article and the list of expanded queries that encapsulate the concept in the input query."
                                             "Please transform the input query into an extensive set of queries that accurately, thoroughly, and vividly encompass all interpretations, perspectives, and facets of the input query."
                                             "Please output in JSON format as {expanded_queries: [expanded_query_1, expanded_query_2, expanded_query_3, …]}."
-                 }
+                }
             ],
             temperature=0.75,
-            max_tokens=500,
+            max_tokens=1000,
             top_p=0.75,
             frequency_penalty=0,
             presence_penalty=0,
@@ -138,6 +138,7 @@ class GenEmb:
             official_index = official_index.resample(interval).mean()
         # Join official index to generated index
         index = index.join(official_index).dropna()
+        # index = index.join(official_index)
         # Min-max scale all indexes to 0 and 1
         scaler = MinMaxScaler(feature_range=(0, 1))
         columns_to_scale = ['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score', 'official']
@@ -148,7 +149,7 @@ class GenEmb:
         # Calculate pearson correlation
         print("-" * 60)
         pearson_corr = index['relu_score'].corr(index['official'], method='pearson')
-        print(f"Pearson Correlation with EPU: {pearson_corr}")
+        print(f"Pearson Correlation: {pearson_corr}")
         return index, pearson_corr
 
     # Join official index with generated index into one dataframe
@@ -276,6 +277,7 @@ class GenEmb:
         print("-" * 60 + "\nGetting query vector...")
         label_emb = self._get_emb()
         label_emb = np.array(label_emb).reshape(1, -1)
+        self.label_emb = label_emb
 
         # Convert vector_data to a matrix
         vector_matrix = np.stack(self.vector_data[self.vector_column].values)
@@ -310,6 +312,7 @@ class GenEmb:
         norm_score.index.names = ['date']
         relu_score = relu_score.to_frame('relu_score')
         norm_score = norm_score.to_frame('norm_score')
+        self.daily_before_agg_index = relu_score[['relu_score']]
 
         # Get articles
         art = pd.concat([relu_score, self.article_data[['headline', 'body_txt']]], axis=1)
@@ -320,6 +323,7 @@ class GenEmb:
         relu_score.columns = ['relu_score']
         norm_score = norm_score.groupby('date').mean()
         norm_score.columns = ['norm_score']
+        self.daily_after_agg_index = relu_score[['relu_score']]
 
         # Add embedding agg daily
         norm_score['agg_norm_score'] = cos_sim_agg[0]
@@ -361,193 +365,3 @@ class GenEmb:
             relu_score = pd.concat([relu_score, relu_norm_score, norm_score, daily_art[['headline', 'body_txt']]], axis=1)
 
         return relu_score, self.query['expanded_query'], threshold
-
-
-# --------------------------------------------------------------------------------------------------------------------------------------------------------
-# --------------------------------------------------------------------------GET PLOTS---------------------------------------------------------------------
-if __name__ == "__main__":
-    # --------------------------------------------------------------------------------------------------------------------------------------------------------
-    # -------------------------------------------------------------------------------PARAMS-----------------------------------------------------------------------
-    # Params
-    type = 'cc'
-    expand = True
-    info = False
-    vector_column = 'ada_embedding'
-    interval = 'Y'
-    p_val = 0.01
-    
-    # --------------------------------------------------------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------WSJ-----------------------------------------------------------------------
-    if type == 'wsj':
-        # Load openai embeddings
-        vector_data = Data(folder_path=get_format_data() / 'openai', file_pattern='wsj_emb_textemb3small_*')
-        vector_data = vector_data.concat_files()
-    
-        # Load articles
-        article_data = Data(folder_path=get_format_data() / 'token', file_pattern='wsj_tokens_*')
-        article_data = article_data.concat_files()
-
-        # Set limit for number of articles per date
-        limit = 30
-        count = vector_data.groupby(vector_data.index)[vector_data.columns[0]].count()
-        valid_date = count >= limit
-        vector_data = vector_data[vector_data.index.isin(count[valid_date].index)]
-        count = article_data.groupby(article_data.index)[article_data.columns[0]].count()
-        valid_date = count >= limit
-        article_data = article_data[article_data.index.isin(count[valid_date].index)]
-
-    # --------------------------------------------------------------------------------------------------------------------------------------------------------
-    # -------------------------------------------------------------------------------CC-----------------------------------------------------------------------
-    elif type == 'cc':
-        # Load CC openai embeddings
-        vector_data = Data(folder_path=get_format_data() / 'openai', file_pattern='cc_emb_textemb3small_*')
-        vector_data = vector_data.concat_files()
-    
-        # Load CC articles
-        article_data = Data(folder_path=get_format_data() / 'token', file_pattern='cc_tokens_*')
-        article_data = article_data.concat_files()
-    
-        # Daily Multiple CC Metadata
-        mdata = Data(folder_path=get_data() / 'cc_multiple', file_pattern='*_mdata.pq')
-        mdata = mdata.concat_files()
-    
-        # Create date index
-        mdata['date'] = pd.to_datetime(mdata['startDate'], format='%d-%b-%y %I:%M%p %Z')
-        mdata['date'] = mdata['date'].dt.date
-        mdata['date'] = pd.to_datetime(mdata['date'])
-        mdata = mdata.set_index('fid')
-    
-        # Set index for CC embeddings
-        vector_data.index = article_data['fid']
-        vector_data = vector_data.join(mdata)
-        vector_data = vector_data.reset_index().set_index('date').sort_index()
-        vector_data = vector_data[['ada_embedding']]
-        vector_data = vector_data.loc[~vector_data.ada_embedding.isnull()]
-    
-        # Set index for CC articles
-        article_data = article_data.set_index('fid')
-        article_data = article_data.join(mdata)
-        article_data = article_data.rename(columns={'Headline': 'headline'})
-        article_data = article_data.reset_index().set_index('date').sort_index()
-        article_data = article_data.loc[~((article_data.index == '2006-10-18') & (article_data.fid == '1391246') & (article_data.content_type == 'Presentation'))]
-        article_data = article_data[['headline', 'body_txt']]
-
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'ESG'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._join_index(index=index, interval=interval, file_path='esg_google_trend.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['ESG', 'ESG (Google Trend)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_esg_index')
-    #
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    print("-"*120)
-    query = 'US Economic Policy Uncertainty'
-    generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    index, expanded_query, threshold = generate.generate_emb()
-    index, pearson_corr = generate._compare_index(index=index, interval=interval, file_path='epu.parquet.brotli')
-    generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['US EPU', 'US EPU (Baker et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_usepu_index')
-
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Inflation'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, interval=interval, file_path='ir.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Inflation', '5-Year Breakeven Inflation Rate (FRED)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_inflation_index')
-
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Systemic Financial Stress'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, interval=interval, file_path='fsi.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Financial Stress', 'Financial Stress (Baker et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_fsi_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Economic Recession'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index, pearson_corr = generate._compare_index(index=index, interval=interval, file_path='recession.parquet.brotli')
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=pearson_corr, index_paper=index[['relu_score', 'official']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Economic Recession', 'Economic Recession (Bybee et al.)'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_economicrecession_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Market Crash'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Market Crash'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_marketcrash_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-" * 120)
-    # query = 'Stock Market Bubble'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Stock Market Bubble'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_stockmarketbubble_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'US-China Trade War'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['US-China Trade War'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_uschinatradewar_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Artificial Intelligence'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Artificial Intelligence'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_ai_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'Blockchain'
-    # generate = GenEmb(query=query, expand=expand, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['Blockchain'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_blockchain_index')
-    #
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = 'COVID-19'
-    # generate = GenEmb(query=query, expand=False, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['COVID-19'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_covid19_index')
-
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # query = "(OPERATOR INSTRUCTIONS) Jay Turner BMO Nesbitt Burns. Just a couple questions. Now the $450 million CapEx for the 16,000 tons of nickel, does this include anything at Fort Saskatchewan? Or how are you planning on refining those? This is Jowdat, Jay. The refinery will be expanded; but also the technology at the refinery will be changed. So the number includes both the expansion and the technology conversion to a (technical difficulty) extraction based system, which should substantially lower the energy requirements at Fort Saskatchewan. Okay, that was one thing. The Santa Cruz wells, are they going to be onshore? Are they going to be drilled from onshore? They will both be drilled from onshore, the same pad that the first well was drilled from. I see, okay. I know that you're cut (ph) off by confidentiality agreements on the Stelco stuff. But have you essential walked away from that whole process? Our bid's termination date was last Tuesday, and the bid expired pursuant to its termination provisions. So that is the end of our involvement, and at this stage we do not foresee any reason to look at it again. I see. So how does this impact now your strategy in Ontario for getting into the downstream energy business? Well, the strategy is actually not just in Ontario. It is basically in Canada generally. Our Bow City project is well on track. This year we're spending about $5 million of capital. We have already filed for the public review process to enable us to submit the application to proceed with that project. I think I may have missed something. Is this the old Brooks power project? It is now called the (multiple speakers). Bow City, yes, okay. I was wondering about (multiple speakers). If you see the newspapers and you see Bow City, that is the old Brooks project. For some reason I guess the project team decided to change the name. I don't know the reasons; don't ask me for those. We must have had somebody in our team from Bow City I suppose. \n But that is well on track. We on that project are proceeding together with Ontario Teachers. That right now, given the announcements the government has made vis-a-vis the grid, in our view, the next plant in Alberta. Just going back, I must have missed a bit on this. I was not aware of a decision that the Alberta government had made on the grid. Are they talking about aligning it more north-south now? Sorry, more east-west? There is a huge investment required to upgrade the grid between Edmonton and Calgary further. So they announced an upgrade to the facility; but they also I think at the same time announced that they were not looking to investing further billions of dollars in basically expanding it further. It doesn't make economic sense to do so. As a consequence now, a southern (ph) generation, which is where Bow City is located, becomes very attractive. It seems if my memory serves me that it was the east-west hook-up of that project that was a something block (multiple speakers). No, it was basically -- no, east-west is only for export to Saskatchewan or British Columbia. North-south was a basic corridor because the substantial capacity up in the north can generally be expanded cheaper than a greenfield capacity. So that is why the Genesee expansion that is now complete and running came ahead of Bow City, because it was cheaper to expand that plant before you could build a new greenfield plant in the south. But now the area around Edmonton (indiscernible) principally is tapped (ph) out. But what is the government proposing to do to help Brooks, specifically? I don't think we need any real help per se. The economics for the project stand on their own. We're not looking and we are not seeking at this stage any incentives from the government. And is this still going to be conceptually still an 800 MW facility that is being built, 2 by 400? I think you really would not be changing the stack size from a 450 unit. The system is capable of handling that. So the issue would be one unit or two units, whether it is 450 or it is two times that. Okay; and what kind of timeline for making a decision on that? I think the way the permitting goes, I am told it takes about six months to a year to get this through the energy board requirements. So we are in the first six-month phase right now. Okay, great. Thank you very much. (technical difficulty) Steve Bonnyman, CIBC World Markets. Following up on Jay's question, of the 450 million capital, that obviously provides for the expansion at Moa, the expansion at Fort Saskatchewan, and the technological shift. But the Cubans are contributing 25 years of reserves to this. What is the quid pro quo on that? They are contributing many things. They are contributing reserves and they are paying for half the capital. So you got a great deal, Jowdat. Is there no quid pro quo on the reserves? Remember, Steve, that the government takes the lion's share of the income. Not only do they get to keep (indiscernible) of the dividends but they also get taxes and royalties, which in the Cuban system start off when the capital cost is repaid, so maybe 7, 8 years from now on the expanded tonnage. So the government's, I think, return is based upon the jobs, the strategic importance of selling more nickel and cobalt, as well as future dividends and income. Fair enough. In terms of the expansion itself I think you said 30 months for the build. How long would the ramp up be? We do not anticipate that ramp up is going to be a big issue here. Remember that we are not doing a new construction. If anything we are adding more cranes in Moa. More tecnas (ph), more mining equipment, more leaching and precipitation capacity, and further refining capacity in Fort Saskatchewan. So I don't think there is going to be anything more than a six-month ramp up if things go well. That leads to my next question, because 450 million in capital is a pretty high number for what your proposing for a brownfield expansion. I assume that has to do at the technology conversion. Yes. I think if you want to use ballpark numbers on a (inaudible) basis, approximately $10 is in respect of the capacity part of it; and then the $2 and 70-odd cents on top of that is in respect of the technology change, which is hard to resist because the return is rather significant in going to an acid-based system as opposed to an ammonia-based system. Plus it is also proven technology, so there is no reason not to do it. Fair enough. But the plant -- what will you have to be pulling out of Fort Saskatchewan? Obviously the autoclaves if you are not using --. No, everything stays the way it is. There's -- You could use the same trains. Just what you use to leach it. Fair enough. So you are just changing (multiple speakers). How many shares to date have you been able to repurchase under the offer that is outstanding? None so far; the offer is still outstanding. I expected as much given where the share price had been. I just wanted to clarify that. We have no idea who will tender, who will not. I think the offer expires next week. Friday. At $10.68 nobody is going to tender. The last question was on the timing of the coal production expansions. You had indicated the production really would tick in towards the third quarter. Will we actually see any of that flow into sales next year? Or is the bulk of that impact going to be in the '06 year? It should actually flow into sales this year as well. We are projecting total volumes from the mine of 2.7 million tons this year which is going to be higher than the volumes this year by a fair amount. Then the full impact, the rest of the impact will be in '06. So the net impact in coal sales '04 over '05 you would expect to be what level? 2.7 compared to -- I am going to look at Guy. Where were we at? I think it's (indiscernible) 5% -- from a total production perspective it is about 5% increase when you add the Genesee expansion and Coal Valley together. We're projecting 40 million tons for this year compared to 38 last year. The Coal Valley part is 2.7, I think compared to just about 2. That's great, thank you very much. (OPERATOR INSTRUCTIONS) Anoop Prihar, GMP Securities. Just a couple of quick questions. What guidance would you provide for your consolidated tax rate for '05? I would say, Anoop, around 35% is probably a good number to use. Is there a split you can offer on cash versus deferred? I won't give you that, no. Just with respect to the accounting changes that you implemented in the fourth quarter, relative to the way that we reported the earnings in the third quarter, did these changes result in any meaningful change in earnings at all? I will let Susan answer that. I think the biggest one would be obviously the impact on our convertible debenture accounting. But let me let Susan give you the details. One element -- hi, Anoop -- that I will add before Susan picks up is that increasingly as we go into '05 and '06 I think it will be important to focus on two elements of earning. One is clearly the earnings as we are going to be reporting them. The other is the earnings from each of the growth that is currently underway, in metals and oil and coal and power. In each one of our principal segments there is committed growth which is a fairly substantial component, we hope certainly, of feature earnings. Susan? The changes with respect to the accounting changes, one was we adopted the VIE standard; as well as the second one was we adopted a standard with respect to the convertible debentures in the disclosure presentation. That is disclosed in note 2 to our interim consolidated financial statements. \n The cumulative effect of the change to the third quarter of '04 with respect to the VIE standard was an increase in EPS basic of $0.02, and that was just up to the third quarter. With respect to the convertible debenture change, the impact to third quarter was a decrease in EPS basic of $0.04; and that relates mostly to accretion charges on the debentures. Just so I understand then, relative to the number that we reported in Q4 with the accounting changes, if we had reported Q4 under the conventional or under the way we did it in the third quarter, would there have been a meaningful change in earnings per share? Only about $0.02 or $0.03. The accretion expense would not be there. It is mostly the accretion. That was $0.02, sorry? In the fourth quarter? In the fourth quarter it would have been $0.02 to $0.03. $0.02 to $0.3 basic. Thank you very much. Gary Chapman, Guardian Capital. I missed the first few minutes and perhaps you discussed this. But the nickel expansion, what IRR or return on investment are you using? And what nickel and cobalt prices go with that? I think it is better if you pick the nickel and cobalt prices. The thing that we are focused on is that for us this is a marginal expansion. So this will be -- all of the production will be going at marginal cost. We are earning (ph) around a buck, give or take a little, for our cash cost. The marginal cost will be substantially below that. So that is what we are focused on, the incremental marginal costs being substantially below the $1.10, $1.20 numbers that we are currently doing for cash costs. It makes sense perhaps, but in terms of the total capital put in the project you must have done an ROI. Would you have used long-term nickel of $3, $4, to make it just -- ? We like using $3.25; and $7.50 for cobalt. If I recall at one point earlier on you sort of thought about the expansion and that it would be brownfield, what would be relatively inexpensive to other projects. Then I think there's a time you're concerned about the cost of inputs rising and maybe it wouldn't be such a good idea. What has happened that makes it a good idea again? The basic issue ultimately was always return. Remember we own the business 50-50 with the government. In all previous iterations we were following the usual mode of investment in Cuba, where we provide all the capital and then we take all the cash flow before we are repaid; and then everybody shares 50-50. \n That is a very expensive exercise. I think the sea change here that happened was the government decided, on the strength of the economics, to basically fund their share on their own. That changes everything. So with that gone, the returns basically become irrelevant. Because no matter what prices you put in you're way above your IRR requirements. That makes a lot of sense. Thanks very much. There are no further questions at this time. Please continue. Ladies and gentlemen, thank you very much for listening; and please visit our webpage at www.Sherritt.com to access replay information. Thank you very much, Connie, and thank you all for your participation. Ladies and gentlemen, this concludes the conference call for today. Thank you for participating. Please disconnect your lines."
-    # generate = GenEmb(query=query, expand=False, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    # index, expanded_query, threshold = generate.generate_emb()
-    # index = generate._standardize(index)
-    # generate.save(query=query, expanded_query=expanded_query, p_val=p_val, threshold=threshold, pearson=0, index_paper=index[['relu_score']], index_research=index[['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score']], index_name_paper=['COVID-19'], index_name_research=['Transformed (Relu then Agg)', 'Transformed (Agg then Relu)', 'Non-Transformed (Agg)', 'Non-Transformed (No Agg)'], output=f'{type}_tesla_index')
-
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # print("-"*120)
-    # language = [('English', 'Inflation'), ('Chinese', '通货膨胀'), ('Russian', 'инфляция'), ('Spanish', 'inflación'), ('French', "d'inflation"), ('Arabic', 'زِيادة في الأَسْعار')]
-    # for i, (lan, query) in enumerate(language):
-    #     generate = GenEmb(query=query, expand=False, info=info, vector_data=vector_data, vector_column=vector_column, article_data=article_data, interval=interval, p_val=p_val)
-    #     index, expanded_query, threshold = generate.generate_emb()
-    #     if lan == 'English':
-    #         keep = index
-    #         continue
-    #     print(f"US and {lan} Correlation: {keep['relu_score'].corr(index['relu_score'])}")

@@ -18,7 +18,7 @@ function App() {
             {
                 text: <div>
                     <p>
-                        Hi, I am FenUI. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, percentile, and to expand your query or not. If not, I will use default values 1984-01-01, 2021-12-31, 0.01, and expand set to True. Please note, the longer your desired time frame, the longer it will take to generate. Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!
+                        Hi, I am NarrativeTracker. To generate an attention index, please send a message that clearly specifies a query in any format. You can also specify a start date, end date, percentile, and to expand your query or not. If not, I will use default values 1984-01-01, 2021-12-31, 0.01, and expand set to True. Please note, the longer your desired time frame, the longer it will take to generate. Check out our paper <a href={paperLink} style={{ color: '#72bdd4', textDecoration: 'none' }} target="_blank">here</a> for more info. Happy generating!
                     </p>
                 </div>,
                 isBot: true,
@@ -253,7 +253,8 @@ function App() {
             <button className={`toggle-btn ${sidebarVisible ? 'active' : ''}`} onClick={toggleSidebar}><img src={sidebar} alt="Side Bar" /></button>
             <div className={`sideBar ${sidebarVisible ? 'active' : ''}`}>
                 <div className="upperSide">
-                    <div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">FenUI</span></div>
+                    {/*<div className="upperSideTop"><img src={logo} alt="Logo" className="logo" /><span className="brand">NarrativeTracker</span></div>*/}
+                    <div className="upperSideTop"><span className="brand">NarrativeTracker</span></div>
                     <button className="midBtn" onClick={()=>{window.location.reload()}}><img src={addBtn} alt="New Chat" className="addBtn" />New Chat</button>
                     <div className="upperSideBottom">
                         <button className="query" onClick={botIsTyping ? null : handleQuery} value={'About Us'} disabled={botIsTyping}><img src={msgIcon} alt="Query" />About Us</button>
@@ -271,9 +272,10 @@ function App() {
                 <div className="chats">
                     {messages.map((message, i)=>
                         <div key={i} className={message.isBot?"chat bot":"chat"}>
-                            <img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />
+                            {/*<img className="chatImg" src={message.isBot ? logo : userIcon} alt="" />*/}
+                            <img className="chatImg" src={message.isBot ? userIcon : userIcon} alt="" />
                             <div className="message-text">
-                                <div className="message-label">{message.isBot ? "FenUI" : "You"}</div>
+                                <div className="message-label">{message.isBot ? "NarrativeTracker" : "You"}</div>
                                 {message.text === "Bot is typing..."
                                     ? <div className="loading-circle"></div>
                                     : <p className="message-inp">{message.text}</p>
@@ -327,7 +329,7 @@ function App() {
                                 <img src={sendBtn} alt="send"/>
                             </button>
                         </div>
-                        <p>FenUI is more prone to mistakes if input is ambiguous when specifying query and optional parameters.</p>
+                        <p>NarrativeTracker is more prone to mistakes if input is ambiguous when specifying query and optional parameters.</p>
                     </div>
                     {showPopup && selectedData && (
                         <div className="popup">

@@ -1,0 +1,7 @@
+Language,Query,Query Embedding Correlation,Attention Index Correlation
+English,inflation,1.0,1.0
+Chinese,经济衰退,0.70470638609906,0.9257263989333993
+Russian,экономическая рецессия,0.48594268007588654,0.3929136679365043
+Spanish,recesión económica,0.706210456396904,0.9594506349045925
+French,récession économique,0.7528698580800278,0.9425004214882996
+Arabic,الركود الاقتصادي,0.38400200644939775,-0.17885601860050235
