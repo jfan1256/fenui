@@ -137,8 +137,8 @@ class GenEmb:
         if not official_index.index.freqstr == interval:
             official_index = official_index.resample(interval).mean()
         # Join official index to generated index
-        index = index.join(official_index).dropna()
-        # index = index.join(official_index)
+        # index = index.join(official_index).dropna()
+        index = index.join(official_index)
         # Min-max scale all indexes to 0 and 1
         scaler = MinMaxScaler(feature_range=(0, 1))
         columns_to_scale = ['relu_score', 'relu_norm_score', 'agg_norm_score', 'norm_score', 'official']
