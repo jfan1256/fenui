@@ -22,7 +22,7 @@ prod = True
 
 if prod == True:
     # Prod CORS (This is connecting to the frontend url)
-    CORS(app, resources={r"/generate_plot": {"origins": "https://fenui.vercel.app"}})
+    CORS(app, resources={r"/generate_plot": {"origins": "https://narrativetracker.vercel.app"}})
 else:
     # Local CORS
     CORS(app, resources={r"/generate_plot": {"origins": "http://localhost:3000"}})
