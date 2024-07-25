@@ -175,18 +175,19 @@ class GenEmb:
 
     # Save index, query, etc. to folder
     @staticmethod
-    def save(query, expanded_query, p_val, threshold, pearson, index_paper, index_research, index_name_paper, index_name_research, output):
-        # Make Dir
-        plot_dir = f'../../view_attention/{output}'
-        os.makedirs(plot_dir, exist_ok=True)
+    def save(query, expanded_query, p_val, threshold, pearson, index_paper, index_research, index_name_paper, index_name_research, output, save=True):
+        if save:
+            # Make Dir
+            plot_dir = f'../../view_attention/{output}'
+            os.makedirs(plot_dir, exist_ok=True)
 
-        # Save prompt and label
-        with open(f'../../view_attention/{output}/{output}.txt', 'w') as file:
-            file.write(f"Query: {query}\n\n")
-            file.write(f"Expanded Query: {expanded_query}\n\n")
-            file.write(f"P-Value: {p_val}\n\n")
-            file.write(f"Threshold: {threshold}\n\n")
-            file.write(f"Pearson Correlation: {pearson}\n\n")
+            # Save prompt and label
+            with open(f'../../view_attention/{output}/{output}.txt', 'w') as file:
+                file.write(f"Query: {query}\n\n")
+                file.write(f"Expanded Query: {expanded_query}\n\n")
+                file.write(f"P-Value: {p_val}\n\n")
+                file.write(f"Threshold: {threshold}\n\n")
+                file.write(f"Pearson Correlation: {pearson}\n\n")
 
         # Get plot
         plt.figure(figsize=(10, 5))
@@ -211,9 +212,10 @@ class GenEmb:
         plt.tick_params(axis='y', which='both', left=False, labelleft=False, pad=10)
         plt.grid(False)
 
-        # Save figure
-        plt.savefig(f'../../view_attention/{output}/{output}.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if save:
+            # Save figure
+            plt.savefig(f'../../view_attention/{output}/{output}.png', format='png', dpi=300, bbox_inches='tight')
+            plt.show()
 
         # Get plot
         plt.figure(figsize=(10, 5))
@@ -238,8 +240,9 @@ class GenEmb:
         plt.tick_params(axis='y', which='both', left=False, labelleft=False, pad=10)
         plt.grid(False)
 
-        # Save figure
-        plt.savefig(f'../../view_attention/{output}/compare.png', format='png', dpi=300, bbox_inches='tight')
+        if save:
+            # Save figure
+            plt.savefig(f'../../view_attention/{output}/compare.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.close()
         return None
